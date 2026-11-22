@@ -2,13 +2,14 @@
 import { testimonials } from './content';
 // Mientras no haya comentarios reales, el carrusel muestra 8 espacios reservados (sin textos inventados).
 const real = testimonials.slice(0, 8);
-const items = real.length > 0 ? real.map((t) => ({ ...t, placeholder: false })) : Array.from({ length: 8 }, () => ({ name: '', role: '', text: '', placeholder: true }));
+const items = real.length > 0 ? real.map((t) => ({ ...t, sample: t.sample ?? false, placeholder: false })) : Array.from({ length: 8 }, () => ({ name: '', role: '', text: '', sample: false, placeholder: true }));
 ---
 <div class="carousel" data-carousel aria-roledescription="carrusel" aria-label="Comentarios de alumnos">
   <div class="track" data-track tabindex="0">
     {items.map((t, i) => (
       <figure class={`slide${t.placeholder ? ' ghost' : ''}`} aria-roledescription="diapositiva" aria-label={`${i + 1} de ${items.length}`}>
         <span class="mark" aria-hidden="true">“</span>
+        {t.sample && <span class="tag">Ejemplo</span>}
         {t.placeholder ? (
           <div class="lines" aria-hidden="true"><i></i><i></i><i></i><i class="short"></i></div>
         ) : (
@@ -80,6 +81,7 @@ const items = real.length > 0 ? real.map((t) => ({ ...t, placeholder: false })) 
   .dots { display: flex; gap: .5rem; }
   .dot { width: 32px; height: 22px; padding: 10px 0; border-radius: 0; border: 0; background: #b9c8d4; background-clip: content-box; }
   .dot[aria-current="true"] { background: var(--blue); background-clip: content-box; padding: 9px 0; }
+  .tag { position: absolute; top: 1rem; right: 1rem; border: 1px solid var(--line); color: var(--muted); font-size: .65rem; letter-spacing: .14em; text-transform: uppercase; padding: .15rem .5rem; }
   .lines { display: grid; gap: .65rem; }
   .lines i { display: block; height: 1px; background: #b9c8d4; }
   .lines i.short { width: 55%; }

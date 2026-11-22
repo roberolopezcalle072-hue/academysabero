@@ -44,5 +44,15 @@ export const vision = {
   ],
 };
 
-// Comentarios REALES de alumnos. Añade aquí solo testimonios autorizados por quien los escribió.
-export const testimonials: { name: string; role: string; text: string }[] = [];
+// Comentarios del carrusel (máximo 8). Los actuales son de EJEMPLO (sample: true) y muestran una etiqueta "Ejemplo".
+// Para publicar comentarios reales: reemplaza estas entradas y quita "sample: true".
+export const testimonials: { name: string; role: string; text: string; sample?: boolean }[] = [
+  { sample: true, name: 'Lucía Fernández', role: 'Analista de datos', text: 'Las sesiones en vivo son claras y el campus me permite retomar cada clase cuando lo necesito. Se nota el cuidado en el contenido.' },
+  { sample: true, name: 'Carlos Mendoza', role: 'Jefe de proyectos', text: 'Lo que más valoro es el acompañamiento: cada consulta recibió respuesta rápida y orientada a mi caso real.' },
+  { sample: true, name: 'Andrea Salazar', role: 'Consultora independiente', text: 'Un programa ordenado, con materiales muy bien organizados. Pasé de la teoría a aplicarlo en mi trabajo en pocas semanas.' },
+  { sample: true, name: 'Diego Paredes', role: 'Ingeniero de software', text: 'Me gustó la mezcla de clases en vivo y recursos para repasar. Todo está al alcance en un solo lugar.' },
+  { sample: true, name: 'Valeria Ríos', role: 'Directora comercial', text: 'Contenido riguroso y un trato cercano. Recomiendo la academia a quien busque crecer con método.' },
+  { sample: true, name: 'Jorge Castillo', role: 'Emprendedor', text: 'La plataforma es sencilla y elegante. Seguir mi progreso curso a curso me mantuvo constante.' },
+  { sample: true, name: 'Mariana Torres', role: 'Gerente de operaciones', text: 'Las explicaciones son prácticas y directas. Cada módulo deja herramientas que puedo usar al día siguiente.' },
+  { sample: true, name: 'Renato Vargas', role: 'Analista financiero', text: 'Excelente experiencia: sesiones bien preparadas, buen ritmo y un equipo siempre disponible para resolver dudas.' },
+];
