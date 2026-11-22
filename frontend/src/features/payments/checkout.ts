@@ -30,9 +30,9 @@ function loadScript(src: string): Promise<void> {
   });
 }
 
-// ---- Culqi (https://docs.culqi.com/es/documentacion/checkout) ----
+// ---- Culqi Checkout v3 (global Culqi + callback culqi()): entrega un token que el backend convierte en cargo ----
 const openCulqi: Opener = async (payment, { onToken, onError, onClose }) => {
-  await loadScript('https://js.culqi.com/checkout-js');
+  await loadScript('https://checkout.culqi.com/js/v3');
   const w = window as unknown as Record<string, any>;
   const Culqi = w.Culqi;
   Culqi.publicKey = String(payment.config.publicKey ?? '');
