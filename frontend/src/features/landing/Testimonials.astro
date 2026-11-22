@@ -47,7 +47,7 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) 
     const cards = Array.from(grid.querySelectorAll<HTMLElement>('[data-card]'));
     const cur = root.querySelector<HTMLElement>('[data-cur]');
     const total = cards.length;
-    const perView = () => (matchMedia('(max-width: 40rem)').matches ? 1 : matchMedia('(max-width: 64rem)').matches ? 2 : 3);
+    const perView = () => (innerWidth > 1200 ? 5 : innerWidth > 900 ? 3 : innerWidth > 600 ? 2 : 1);
     let start = 0;
     let timer: number | undefined;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -111,4 +111,22 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) 
   .tcard { border-radius: 18px; box-shadow: 0 8px 24px rgb(7 27 53 / .05); }
   .avatar { border-radius: 50%; }
   .nav { border-radius: 50%; }
+
+  /* ===== Escala compacta: 5 tarjetas ===== */
+  .testi { gap: 1.5rem; }
+  .head h2 { max-width: 30ch; }
+  .grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .9rem; }
+  .tcard { padding: 1.1rem 1rem .9rem; gap: .7rem; border-radius: 14px; }
+  .quote-ico { width: 24px; height: 24px; }
+  blockquote { font-size: .86rem; line-height: 1.55; }
+  figcaption { gap: .55rem; padding-top: .75rem; }
+  .avatar { width: 38px; height: 38px; font-size: .75rem; }
+  .who strong { font-size: .8rem; }
+  .who small { font-size: .7rem; }
+  .wa { width: 28px; height: 28px; }
+  .wa svg { width: 14px; height: 14px; }
+  .nav { width: 36px; height: 36px; }
+  @media (max-width: 1200px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 600px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 </style>
