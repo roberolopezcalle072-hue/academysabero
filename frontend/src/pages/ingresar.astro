@@ -49,6 +49,7 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
                 <input id="email" name="email" type="email" maxlength="254" autocomplete="email" required />
                 <label for="password">Contraseña</label>
                 <input id="password" name="password" type="password" maxlength="200" autocomplete="current-password" required />
+                <a class="forgot" href="/recuperar">¿Olvidaste tu contraseña?</a>
                 <button class="dk-btn wide">Iniciar sesión</button>
               </form>
               <p class="or"><span>o</span></p>
@@ -102,4 +103,5 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
     .perks { gap: .4rem; font-size: .92rem; }
     .offer { font-size: .82rem; padding: .45rem .85rem; }
   }
+  .forgot { justify-self: end; font-size: .88rem; margin-top: -.15rem; }
 </style>

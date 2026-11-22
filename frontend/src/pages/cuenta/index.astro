@@ -8,12 +8,14 @@ const member = Astro.locals.member;
 const catalog = await loadCatalog(token);
 const pending = catalog?.filter((c) => c.request_status === 'pending') ?? [];
 const sent = Astro.url.searchParams.get('estado') === 'solicitud-enviada';
+const changed = Astro.url.searchParams.get('estado') === 'clave-cambiada';
 const duplicate = Astro.url.searchParams.get('estado') === 'solicitud-existente';
 ---
 <BaseLayout title="Mi cuenta" privatePage dark>
   <div class="dk">
   <section class="shell page account">
     {sent && <p class="notice ok" role="status">¡Solicitud enviada! La revisaremos y te avisaremos cuando tu inscripción esté confirmada.</p>}
+    {changed && <p class="notice ok" role="status">Tu contraseña se actualizó correctamente.</p>}
     {duplicate && <p class="notice" role="status">Ya tienes una solicitud en revisión para ese curso.</p>}
 
     {member ? (
