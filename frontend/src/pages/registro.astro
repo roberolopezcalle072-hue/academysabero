@@ -1,0 +1,80 @@
+---
+import BaseLayout from '../shared/presentation/BaseLayout.astro';
+
+const state = Astro.url.searchParams.get('estado');
+const messages = new Map([
+  ['datos', 'Revisa tu nombre y tu correo.'],
+  ['clave', 'La contraseña debe tener entre 8 y 72 caracteres.'],
+  ['terminos', 'Para crear tu cuenta debes aceptar la política de privacidad y los términos.'],
+  ['bloqueado', 'No se pudo crear la cuenta con este correo. Escríbenos si crees que es un error.'],
+  ['servicio', 'El servicio de registro no está disponible. Inténtalo de nuevo en unos minutos.'],
+]);
+const message = state ? messages.get(state) : undefined;
+const sent = state === 'revisa-correo';
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+---
+<BaseLayout title="Crear cuenta" description="Crea tu cuenta en SABERO Academy con tu correo o con Google y conoce los cursos disponibles.">
+  <section class="signup">
+    <div class="shell signup-grid">
+      <div class="stack brand-block">
+        <p class="kicker">SABERO Academy</p>
+        <h1 class="panel-title">Crea tu cuenta</h1>
+        <p>Regístrate gratis, mira los cursos disponibles y solicita tu inscripción.</p>
+        <ul class="perks">
+          <li>Oferta de lanzamiento con cronómetro</li>
+          <li>Sesiones en vivo y acompañamiento</li>
+          <li>Campus privado con tus cursos</li>
+        </ul>
+      </div>
+      <div class="stack form-card">
+        {sent ? (
+          <>
+            <h2>Revisa tu correo</h2>
+            <p class="notice" role="status">Te enviamos un enlace de confirmación. Ábrelo para activar tu cuenta y luego inicia sesión.</p>
+            <a class="button primary" href="/ingresar">Ir a iniciar sesión</a>
+          </>
+        ) : (
+          <>
+            <h2>Registrarme</h2>
+            {message && <p class="notice" role="status">{message}</p>}
+            <form action="/auth/registro" method="post" class="full">
+              <label for="name">Nombre completo</label>
+              <input id="name" name="name" maxlength="120" autocomplete="name" required />
+              <label for="email">Correo electrónico</label>
+              <input id="email" name="email" type="email" maxlength="254" autocomplete="email" required />
+              <label for="password">Contraseña <small>(mínimo 8 caracteres)</small></label>
+              <input id="password" name="password" type="password" minlength="8" maxlength="72" autocomplete="new-password" required />
+              <label class="check"><input type="checkbox" name="accept" required />
+                <span>Acepto la <a href="/privacidad" target="_blank" rel="noopener">política de privacidad</a> y los <a href="/terminos" target="_blank" rel="noopener">términos</a>.</span>
+              </label>
+              <button class="button primary wide">Crear cuenta</button>
+            </form>
+            <p class="or"><span>o</span></p>
+            <form action="/auth/google" method="post" class="full"><button class="button outline wide">Continuar con Google</button></form>
+            <p class="switch">¿Ya tienes cuenta? <a href="/ingresar">Iniciar sesión</a></p>
+          </>
+        )}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .signup { background: linear-gradient(120deg, #f7fafb 40%, #e3f4fb 100%); }
+  .signup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 6vw, 6rem); align-items: center; padding-block: clamp(1.5rem, 4vw, 3rem); }
+  .brand-block .kicker { color: var(--red); }
+  .perks { margin: .5rem 0 0; padding: 0; list-style: none; display: grid; gap: .6rem; }
+  .perks li { position: relative; padding-left: 1.6rem; color: var(--text); }
+  .perks li::before { content: "✓"; position: absolute; left: 0; color: #16a34a; font-weight: 800; }
+  .form-card { background: var(--white); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 24px 50px rgb(7 27 53 / .10); padding: clamp(1.25rem, 3vw, 2rem); }
+  .full { width: 100%; display: grid; gap: .6rem; }
+  label { font-weight: 600; font-size: .9rem; color: var(--navy); }
+  label small { font-weight: 400; color: var(--muted); }
+  .check { display: flex; gap: .6rem; align-items: flex-start; font-weight: 400; color: var(--muted); }
+  .check input { margin-top: .2rem; min-height: 0; }
+  .wide { width: 100%; }
+  .or { width: 100%; display: flex; align-items: center; gap: .75rem; color: var(--muted); font-size: .85rem; }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .switch { color: var(--muted); font-size: .92rem; }
+  @media (max-width: 44rem) { .signup-grid { grid-template-columns: 1fr; } }
+</style>

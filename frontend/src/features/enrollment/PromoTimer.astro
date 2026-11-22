@@ -1,0 +1,37 @@
+---
+import { remaining } from '../landing/promo';
+interface Props { label?: string }
+const { label = 'La oferta termina en' } = Astro.props;
+const left = remaining();
+const two = (n: number) => String(n).padStart(2, '0');
+---
+<div class="promo-timer" data-countdown>
+  <span class="lbl">{label}</span>
+  <div class="cd">
+    <div><b data-d>{two(left.days)}</b><small>Días</small></div>
+    <div><b data-h>{two(left.hours)}</b><small>Horas</small></div>
+    <div><b data-m>{two(left.minutes)}</b><small>Min</small></div>
+    <div><b data-s>{two(left.seconds)}</b><small>Seg</small></div>
+  </div>
+</div>
+<script>
+  import { remaining } from '../landing/promo';
+  const two = (n: number) => String(n).padStart(2, '0');
+  document.querySelectorAll<HTMLElement>('.promo-timer[data-countdown]').forEach((root) => {
+    const set = (sel: string, v: number) => { const el = root.querySelector(sel); if (el) el.textContent = two(v); };
+    const tick = () => {
+      const t = remaining();
+      set('[data-d]', t.days); set('[data-h]', t.hours); set('[data-m]', t.minutes); set('[data-s]', t.seconds);
+    };
+    tick();
+    setInterval(tick, 1000);
+  });
+</script>
+<style>
+  .promo-timer { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem 1rem; }
+  .lbl { color: var(--navy); font-weight: 700; font-size: .9rem; }
+  .cd { display: flex; gap: .45rem; }
+  .cd div { min-width: 54px; display: grid; justify-items: center; padding: .45rem .5rem .35rem; background: #071b35; border-radius: 10px; }
+  .cd b { color: #fbb034; font-size: 1.2rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .cd small { color: #9db3cf; font-size: .62rem; }
+</style>

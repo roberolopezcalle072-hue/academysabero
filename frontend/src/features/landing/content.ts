@@ -13,7 +13,10 @@ export const whatsappUrl = WHATSAPP_NUMBER
   : null;
 
 export const hero = {
-  badge: 'Formación privada · Tecnología para tu negocio',
+  badge: 'Oferta de lanzamiento',
+  titleStart: 'Domina la ',
+  titleHighlight: 'tecnología',
+  titleEnd: ' que hace crecer tu negocio',
   title: 'Domina la tecnología que hace crecer tu negocio',
   intro: 'Agentes de IA, automatización, WhatsApp, mini CRM, webs y mucho más. Formación práctica, en vivo y acompañada para que apliques la tecnología donde más importa: tus ventas.',
 };

@@ -1,0 +1,97 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import { loadAdminRequests } from '../../features/enrollment/infrastructure/enrollment-api';
+import { money } from '../../features/landing/promo';
+
+const token = Astro.locals.accessToken;
+if (!token) return Astro.redirect('/ingresar', 303);
+const statusParam = Astro.url.searchParams.get('estado') ?? 'pending';
+const status = ['pending', 'approved', 'rejected', 'all'].includes(statusParam) ? statusParam : 'pending';
+const pageParam = Astro.url.searchParams.get('page') ?? '1';
+const page = /^[1-9]\d{0,5}$/.test(pageParam) ? Number(pageParam) : 1;
+const data = await loadAdminRequests(token, status, page);
+if (!data) Astro.response.status = 503;
+const saved = Astro.url.searchParams.get('guardado');
+const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
+const tabs = [['pending', 'Pendientes'], ['approved', 'Aprobadas'], ['rejected', 'Rechazadas'], ['all', 'Todas']];
+const labels: Record<string, string> = { pending: 'Pendiente', approved: 'Aprobada', rejected: 'Rechazada' };
+---
+<BaseLayout title="Solicitudes de inscripción" privatePage>
+  <section class="shell page stack">
+    <div class="stack compact">
+      <p class="kicker">Administración</p>
+      <h1 class="panel-title">Solicitudes de inscripción</h1>
+      <a href="/admin">← Administración de acceso</a>
+    </div>
+
+    {saved === '1' && <p class="notice" role="status">Decisión guardada.</p>}
+    {saved === '0' && <p class="notice" role="status">No se pudo guardar la decisión. Inténtalo de nuevo.</p>}
+
+    <nav class="tabs" aria-label="Estado">
+      {tabs.map(([key, label]) => <a href={`/admin/solicitudes?estado=${key}`} aria-current={status === key ? 'page' : undefined}>{label}</a>)}
+    </nav>
+
+    {data === null && <p class="notice" role="status">No se pudo cargar la lista.</p>}
+    {data && data.requests.length === 0 && <p class="notice" role="status">No hay solicitudes en este estado.</p>}
+
+    <div class="list">
+      {data?.requests.map((r) => (
+        <article class="req">
+          <header>
+            <div>
+              <h2>{r.full_name}</h2>
+              <p class="meta">{r.email} · {r.phone} · {r.country}</p>
+            </div>
+            <span class={`state ${r.status}`}>{labels[r.status]}</span>
+          </header>
+          <dl>
+            <div><dt>Curso</dt><dd>{r.academy_courses?.name ?? '—'}</dd></div>
+            <div><dt>Precio ofrecido</dt><dd>{money(r.price_offer, r.currency)} <s>{money(r.price_regular, r.currency)}</s></dd></div>
+            <div><dt>Términos</dt><dd>{r.terms_version} · {fmt(r.terms_accepted_at)}</dd></div>
+            <div><dt>Solicitada</dt><dd>{fmt(r.created_at)}</dd></div>
+          </dl>
+          {r.notes && <p class="notes">“{r.notes}”</p>}
+          {r.status === 'pending' ? (
+            <form action="/admin/solicitudes/decidir" method="post" class="decide">
+              <input type="hidden" name="id" value={r.id} />
+              <input type="hidden" name="estado" value={status} />
+              <input name="note" maxlength="500" placeholder="Nota interna (opcional)" aria-label="Nota interna" />
+              <button class="button primary" name="decision" value="approve">Aprobar y dar acceso</button>
+              <button class="button outline" name="decision" value="reject">Rechazar</button>
+            </form>
+          ) : r.review_note ? <p class="meta">Nota: {r.review_note}</p> : null}
+        </article>
+      ))}
+    </div>
+
+    {data && (page > 1 || data.hasNext) && (
+      <nav class="pager" aria-label="Paginación">
+        {page > 1 && <a href={`/admin/solicitudes?estado=${status}&page=${page - 1}`}>Anterior</a>}
+        {data.hasNext && <a href={`/admin/solicitudes?estado=${status}&page=${page + 1}`}>Siguiente</a>}
+      </nav>
+    )}
+  </section>
+</BaseLayout>
+
+<style>
+  .tabs { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .tabs a { padding: .45rem 1rem; border: 1px solid var(--line); border-radius: 999px; color: var(--navy); text-decoration: none; font-weight: 600; font-size: .9rem; }
+  .tabs a[aria-current='page'] { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .list { width: 100%; display: grid; gap: 1rem; }
+  .req { background: var(--white); border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem 1.3rem; display: grid; gap: .8rem; }
+  .req header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+  .req h2 { font-size: 1.1rem; }
+  .meta { color: var(--muted); font-size: .9rem; }
+  .state { font-size: .75rem; font-weight: 700; padding: .25rem .7rem; border-radius: 999px; border: 1px solid var(--line); }
+  .state.pending { background: #fff4de; color: #9a5b00; border-color: #f6d28b; }
+  .state.approved { background: #effaf2; color: #166534; border-color: #bfe6cb; }
+  .state.rejected { background: #fdf0f0; color: #9b1c1c; border-color: #f1c4c4; }
+  dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem 1.5rem; }
+  dt { color: var(--muted); font-size: .78rem; }
+  dd { margin: .1rem 0 0; font-weight: 600; font-size: .92rem; }
+  dd s { color: #8a9bb0; font-weight: 400; margin-left: .3rem; }
+  .notes { color: var(--text); font-style: italic; }
+  .decide { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+  .decide input { flex: 1 1 14rem; }
+  .pager { display: flex; gap: 1rem; }
+</style>

@@ -7,10 +7,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const path = context.url.pathname;
   const admin = path === '/admin' || path.startsWith('/admin/');
   const campus = path === '/campus' || path.startsWith('/campus/');
-  if (!admin && !campus && !path.startsWith('/auth/')) return next();
+  // /cuenta: cualquier persona con sesión (aunque todavía no tenga cursos).
+  const account = path === '/cuenta' || path.startsWith('/cuenta/');
+  if (!admin && !campus && !account && !path.startsWith('/auth/')) return next();
 
   let response: Response;
-  if (!admin && !campus) {
+  if (!admin && !campus && !account) {
     response = await next();
   } else {
     const access = await resolveMembership(() => readSessionToken(context), (token) => {
@@ -20,12 +22,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (access.status === 'authorized') {
       context.locals.member = access.member;
       response = admin && access.member.role !== 'admin' ? context.redirect('/campus') : await next();
+    } else if (access.status === 'enrollment-required' && account) {
+      response = await next();
     } else {
       const location = {
         guest: '/ingresar',
         unavailable: '/ingresar?estado=servicio',
         denied: '/ingresar?estado=acceso',
-        'enrollment-required': '/ingresar?estado=matricula',
+        'enrollment-required': '/cuenta',
       }[access.status];
       response = context.redirect(location, 303);
     }

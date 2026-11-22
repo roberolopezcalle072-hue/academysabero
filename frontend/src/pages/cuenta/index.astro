@@ -1,0 +1,53 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import { loadCatalog } from '../../features/enrollment/infrastructure/enrollment-api';
+
+const token = Astro.locals.accessToken;
+if (!token) return Astro.redirect('/ingresar', 303);
+const member = Astro.locals.member;
+const catalog = await loadCatalog(token);
+const pending = catalog?.filter((c) => c.request_status === 'pending') ?? [];
+const sent = Astro.url.searchParams.get('estado') === 'solicitud-enviada';
+const duplicate = Astro.url.searchParams.get('estado') === 'solicitud-existente';
+---
+<BaseLayout title="Mi cuenta" privatePage>
+  <section class="shell page account">
+    {sent && <p class="notice ok" role="status">¡Solicitud enviada! La revisaremos y te avisaremos cuando tu inscripción esté confirmada.</p>}
+    {duplicate && <p class="notice" role="status">Ya tienes una solicitud en revisión para ese curso.</p>}
+
+    {member ? (
+      <div class="card">
+        <p class="kicker">Mi cuenta</p>
+        <h1>Bienvenido de nuevo</h1>
+        <p>Tienes acceso a tus cursos en el campus. También puedes ver otros cursos disponibles.</p>
+        <div class="actions">
+          <a class="button primary" href="/campus">Ir al campus</a>
+          <a class="button outline" href="/cuenta/cursos">Ver más cursos</a>
+        </div>
+      </div>
+    ) : (
+      <div class="card empty">
+        <span class="badge-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM4 21.5A2.5 2.5 0 0 1 6.5 19H20" /></svg>
+        </span>
+        <h1>Aún no cuentas con cursos de pago en la academia</h1>
+        <p>Cuando te inscribas en un curso y validemos tu solicitud, aparecerá aquí y podrás entrar al campus.</p>
+        {pending.length > 0 ? (
+          <p class="notice" role="status">Tienes {pending.length === 1 ? 'una solicitud' : `${pending.length} solicitudes`} en revisión. Te avisaremos pronto.</p>
+        ) : null}
+        <a class="button primary" href="/cuenta/cursos">Ver cursos disponibles</a>
+      </div>
+    )}
+  </section>
+</BaseLayout>
+
+<style>
+  .account { display: grid; justify-items: center; }
+  .card { width: min(100%, 38rem); display: grid; gap: 1rem; justify-items: center; text-align: center; padding: clamp(1.5rem, 4vw, 2.5rem); background: var(--white); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 20px 44px rgb(7 27 53 / .08); }
+  .card h1 { font-size: clamp(1.5rem, 2.6vw, 2rem); }
+  .card p { color: var(--muted); }
+  .badge-ico { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 18px; background: #eaf3ff; color: var(--blue); }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
+  .notice { width: min(100%, 38rem); margin-bottom: 1rem; }
+  .notice.ok { background: #effaf2; border-color: #bfe6cb; }
+</style>

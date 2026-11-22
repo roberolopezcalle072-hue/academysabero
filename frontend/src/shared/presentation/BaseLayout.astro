@@ -76,7 +76,8 @@ const jsonLd = JSON.stringify({
         <nav aria-label="Navegación principal">
           {privatePage ? (
             <>
-              <a class="nav-link" href="/campus" aria-current={Astro.url.pathname.startsWith('/campus') ? 'page' : undefined}>Campus</a>
+              <a class="nav-link" href="/cuenta" aria-current={Astro.url.pathname.startsWith('/cuenta') ? 'page' : undefined}>Mi cuenta</a>
+              {member && <a class="nav-link" href="/campus" aria-current={Astro.url.pathname.startsWith('/campus') ? 'page' : undefined}>Campus</a>}
               {member?.role === 'admin' && <a class="nav-link" href="/admin" aria-current={Astro.url.pathname.startsWith('/admin') ? 'page' : undefined}>Administración</a>}
               <form method="post" action="/auth/salir"><button class="button outline">Cerrar sesión</button></form>
             </>

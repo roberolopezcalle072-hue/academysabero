@@ -1,0 +1,53 @@
+---
+import BaseLayout from '../shared/presentation/BaseLayout.astro';
+import { CONTACT_EMAIL, whatsappUrl } from '../features/landing/content';
+import { PROMO, money } from '../features/landing/promo';
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=3600');
+---
+<BaseLayout title="Términos y condiciones de compra" description="Condiciones de compra de los cursos de SABERO Academy: qué incluye el curso y qué herramientas debes adquirir para obtener un resultado funcional.">
+  <article class="shell page stack legal-doc">
+    <p class="kicker">SABERO Consulting</p>
+    <h1 class="panel-title">Términos y condiciones de compra</h1>
+    <p><em>Versión v1 · Última actualización: 22 de noviembre de 2026.</em></p>
+
+    <h2>1. Qué es el curso</h2>
+    <p>Los cursos de SABERO Academy son formación práctica y acompañada para construir soluciones tecnológicas aplicadas a ventas: agentes de inteligencia artificial, automatización, integración con WhatsApp y Meta, mini CRM y creación de webs. Incluyen acceso al campus privado, sesiones en vivo y materiales.</p>
+
+    <h2>2. Precio y oferta</h2>
+    <p>El precio normal del curso es de {money(PROMO.priceRegular)} y el precio de oferta de lanzamiento es de {money(PROMO.priceOffer)}. La oferta se renueva en ciclos de {PROMO.cycleDays} días y el cronómetro muestra el tiempo restante del ciclo vigente. Se aplica el precio que figure en tu solicitud al momento de enviarla.</p>
+
+    <h2>3. Qué debes adquirir por tu cuenta</h2>
+    <p>Para obtener un resultado <strong>funcional</strong> (un agente real trabajando para tu negocio) necesitas contratar, a tu nombre y con tu propio gasto, los siguientes servicios de terceros. <strong>No están incluidos en el precio del curso</strong>:</p>
+    <ul>
+      <li><strong>Servidor VPS</strong> donde se aloja tu agente y tus aplicaciones.</li>
+      <li><strong>Dominio</strong> propio para tu web y tus conexiones.</li>
+      <li><strong>Plan de suscripción</strong> de las herramientas y plataformas que uses.</li>
+      <li><strong>Códigos o licencias</strong> necesarios para activar herramientas y servicios.</li>
+      <li><strong>DeepSeek</strong> (u otro modelo equivalente) para generar las respuestas del agente, con su consumo de uso.</li>
+    </ul>
+    <p>Los precios de estos servicios los fija cada proveedor y pueden cambiar. Cada proveedor tiene sus propios términos, que debes aceptar directamente.</p>
+
+    <h2>4. Asesoría de SABERO</h2>
+    <p>SABERO Consulting te asesora en la elección y la configuración de estas herramientas durante el curso, para que contrates lo que realmente necesitas. La asesoría orienta la compra; la contratación y el pago a los proveedores los realizas tú.</p>
+
+    <h2>5. Validación y acceso</h2>
+    <p>Tu inscripción se confirma cuando validamos tu solicitud y coordinamos el pago contigo. Tras la confirmación se activa tu acceso al campus. Podemos rechazar una solicitud si los datos no son válidos.</p>
+
+    <h2>6. Uso adecuado</h2>
+    <p>El acceso es personal e intransferible. Los materiales y grabaciones son de uso exclusivo del alumno y no pueden redistribuirse. Consulta también nuestros <a href="/terminos">términos del servicio</a> y la <a href="/privacidad">política de privacidad</a>.</p>
+
+    <h2>7. Resultados</h2>
+    <p>Te damos el método, el acompañamiento y los materiales. Los resultados comerciales dependen de tu negocio, de tu dedicación y de los servicios de terceros que contrates, por lo que no se garantizan ventas ni ingresos concretos.</p>
+
+    <h2>8. Contacto</h2>
+    <p>
+      {CONTACT_EMAIL ? <>Escríbenos a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</> : null}
+      {whatsappUrl ? <> También por <a href={whatsappUrl} rel="noopener noreferrer">WhatsApp</a>.</> : null}
+    </p>
+  </article>
+</BaseLayout>
+<style>
+  .legal-doc { max-width: 46rem; }
+  .legal-doc h2 { margin-top: 1.25rem; font-size: 1.25rem; }
+  .legal-doc ul { margin: 0; padding-left: 1.25rem; display: grid; gap: .35rem; }
+</style>
