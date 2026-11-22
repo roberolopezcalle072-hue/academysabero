@@ -1,0 +1,15 @@
+---
+const path = Astro.url.pathname;
+const student = Astro.locals.member?.role === 'student';
+---
+<nav class="shell campus-nav" aria-label="Navegación del campus">
+  <a href="/campus" aria-current={path === '/campus' ? 'page' : undefined}>Resumen</a>
+  <a href="/campus#cursos" aria-current={path.startsWith('/campus/cursos/') ? 'location' : undefined}>Mis cursos</a>
+  {student && <a href="/campus/sesiones" aria-current={path === "/campus/sesiones" ? "page" : undefined}>Sesiones en vivo</a>}
+  {student && <a href="/campus/consultas" aria-current={path === '/campus/consultas' ? 'page' : undefined}>Consultas</a>}
+</nav>
+<style>
+  .campus-nav { gap: 1.5rem; border-bottom: 1px solid var(--line); }
+  a { padding-block: .8rem; border-bottom: 2px solid transparent; color: var(--text); text-decoration: none; }
+  a:hover, a[aria-current] { border-bottom-color: var(--blue); color: var(--link); }
+</style>

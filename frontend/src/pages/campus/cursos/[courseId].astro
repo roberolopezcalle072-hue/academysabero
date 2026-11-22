@@ -1,0 +1,128 @@
+---
+import BaseLayout from '../../../shared/presentation/BaseLayout.astro';
+import CampusNavigation from '../../../features/learning/presentation/CampusNavigation.astro';
+import { duration, lessonUrl } from '../../../features/learning/presentation/format';
+import { completeLesson, loadCourse } from '../../../features/learning/infrastructure/learning-api';
+import { siteUrl } from '../../../shared/config/server';
+
+const token = Astro.locals.accessToken;
+if (!token) return Astro.redirect('/ingresar', 303);
+const courseId = Astro.params.courseId ?? '';
+const uuid = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+const result = uuid.test(courseId) ? await loadCourse(token, courseId) : { status: 'missing' } as const;
+const course = result.status === 'ok' ? result.value : null;
+const lessons = course?.modules.flatMap(module => module.lessons) ?? [];
+const selected = Astro.url.searchParams.get('leccion');
+const lesson = selected ? lessons.find(item => item.id === selected) : lessons.find(item => !item.completed) ?? lessons[0];
+let message = '';
+
+if (Astro.request.method === 'POST') {
+  if (Astro.request.headers.get('origin') !== siteUrl().origin || Astro.locals.member?.role !== 'student') {
+    return new Response(null, { status: 403 });
+  }
+  if (course && lesson) {
+    const mutation = await completeLesson(token, lesson.id).catch(() => null);
+    if (mutation?.ok) return Astro.redirect(lessonUrl(course.id, lesson.id), 303);
+    Astro.response.status = mutation?.status ?? 503;
+    message = 'No se pudo guardar el avance. Inténtalo de nuevo.';
+  }
+}
+
+if (!course) Astro.response.status = result.status === 'missing' ? 404 : 503;
+else if (selected && !lesson) Astro.response.status = 404;
+const sections = lesson ? [
+  ['Objetivo', lesson.objective], ['Explicación', lesson.description], ['Prompt del día', lesson.prompt],
+  ['Instrucciones', lesson.instructions], ['Entregable', lesson.deliverable], ['Criterios de validación', lesson.validation_criteria],
+] : [];
+const next = lesson && lessons.slice(lessons.indexOf(lesson) + 1).find(item => !item.completed);
+---
+<BaseLayout title={course?.name ?? 'Curso'} privatePage>
+  <CampusNavigation />
+  <div class="shell page stack course-page">
+    <a href="/campus#cursos">Volver a mis cursos</a>
+    {course ? (
+      <>
+        <header class="course-header">
+          <div class="stack compact">
+            <p class="kicker">{duration(course.duration_minutes)}</p>
+            <h1 class="panel-title">{course.name}</h1>
+            <p class="copy">{course.description}</p>
+          </div>
+          <img src={course.image_path} alt="" width="288" height="168" />
+        </header>
+        <div class="course-workspace">
+          <aside aria-label="Índice del curso">
+            <h2>Módulos</h2>
+            {course.modules.length === 0 && <p>Todavía no hay módulos publicados.</p>}
+            {course.modules.map(module => (
+              <section class="module">
+                <h3>{module.title}</h3>
+                {module.lessons.length > 0 ? <ul>
+                  {module.lessons.map(item => <li>
+                    <a href={lessonUrl(course.id, item.id)} aria-current={item.id === lesson?.id ? 'page' : undefined}>
+                      <span>Día {item.day_number} · {item.completed ? 'Completada' : 'Pendiente'}</span>
+                      {item.title}
+                    </a>
+                  </li>)}
+                </ul> : <p>Sin lecciones publicadas.</p>}
+              </section>
+            ))}
+          </aside>
+          <section id="leccion" class="stack lesson" aria-label="Lección">
+            {lesson ? (
+              <>
+                <header class="stack compact">
+                  <p class="kicker">Día {lesson.day_number} · {lesson.completed ? 'Completada' : 'Pendiente'}</p>
+                  <h2>{lesson.title}</h2>
+                </header>
+                {sections.map(([label, content]) => content && (
+                  <section class="stack compact lesson-section">
+                    <h3>{label}</h3>
+                    {label === 'Prompt del día' ? <pre>{content}</pre> : <p class="copy">{content}</p>}
+                  </section>
+                ))}
+                <section class="stack compact lesson-section">
+                  <h3>Materiales complementarios</h3>
+                  {lesson.materials.length ? <ul class="materials">
+                    {lesson.materials.map(item => (
+                      <li><a href={item.drive_url} target="_blank" rel="noopener noreferrer">{item.title}</a></li>
+                    ))}
+                  </ul> : <p>Esta lección no tiene materiales complementarios.</p>}
+                </section>
+                {message && <p class="notice" role="status">{message}</p>}
+                <div class="lesson-actions">
+                  {!lesson.completed && Astro.locals.member?.role === 'student' && (
+                    <form action={lessonUrl(course.id, lesson.id)} method="post">
+                      <button class="button primary">Marcar como completada</button>
+                    </form>
+                  )}
+                  {next && <a class="button secondary" href={lessonUrl(course.id, next.id)}>Siguiente actividad</a>}
+                </div>
+              </>
+            ) : <p>{selected ? 'La lección no está disponible en este curso.' : 'Todavía no hay lecciones publicadas.'}</p>}
+          </section>
+        </div>
+      </>
+    ) : <p class="notice" role="status">{result.status === 'missing' ? 'Este curso no está disponible para tu cuenta.' : 'No se pudo cargar el curso.'}</p>}
+  </div>
+</BaseLayout>
+<style>
+  .course-page { gap: 2rem; }
+  .course-header { width: 100%; display: grid; grid-template-columns: 1fr minmax(10rem, 18rem); gap: 2rem; align-items: center; }
+  .course-header img { width: 100%; object-fit: cover; background: var(--light); }
+  .course-workspace { width: 100%; display: grid; grid-template-columns: minmax(13rem, 1fr) minmax(0, 2.2fr); gap: 2rem; border-top: 1px solid var(--line); padding-top: 1.5rem; }
+  .module { margin-top: 1rem; }
+  .module ul { list-style: none; margin: .5rem 0 0; padding: 0; }
+  .module li a { display: grid; padding: .55rem .75rem; border-left: 2px solid var(--line); text-decoration: none; }
+  .module li a:hover, .module li a[aria-current] { background: var(--light); border-left-color: var(--blue); }
+  .module li span { color: var(--muted); font-size: .875rem; }
+  .lesson-section { border-top: 1px solid var(--line); padding-top: 1rem; width: 100%; }
+  .copy { white-space: pre-line; }
+  pre { width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 1rem; background: var(--navy); color: var(--white); }
+  .materials { margin: 0; padding-left: 1.25rem; }
+  .lesson-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  @media (max-width: 50rem) {
+    .course-header, .course-workspace { grid-template-columns: 1fr; }
+    .course-header img { max-width: 18rem; }
+  }
+</style>

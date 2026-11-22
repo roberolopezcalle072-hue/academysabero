@@ -1,0 +1,45 @@
+x-node-runtime: &node-runtime
+  restart: unless-stopped
+  mem_limit: 320m
+  mem_reservation: 240m
+  pids_limit: 80
+  init: true
+  logging:
+    driver: json-file
+    options:
+      max-size: "5m"
+      max-file: "3"
+
+services:
+  backend:
+    <<: *node-runtime
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      NODE_OPTIONS: --max-old-space-size=160
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok) process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    stop_grace_period: 20s
+
+  frontend:
+    <<: *node-runtime
+    build: ./frontend
+    env_file: ./frontend/.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4321
+      NODE_OPTIONS: --max-old-space-size=160
+      API_BASE_URL: http://backend:3000/api/v1
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:4321:4321"
+    stop_grace_period: 20s

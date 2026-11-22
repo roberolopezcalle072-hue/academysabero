@@ -1,0 +1,46 @@
+---
+import { formFields, statuses, materialKinds, type Entity, type FormValues } from './editorial-fields';
+
+interface Props {
+  entity: Entity;
+  action: string;
+  values?: FormValues;
+  parents?: Record<string, string>;
+}
+const { entity, action, values = {}, parents = {} } = Astro.props;
+---
+<form method="post" action={action} class="editorial-form">
+  <input type="hidden" name="entity" value={entity} />
+  {values.id && <input type="hidden" name="id" value={String(values.id)} />}
+  {Object.entries(parents).map(([key, value]) => <input type="hidden" name={key} value={value} />)}
+  {formFields[entity].map(([name, label, type]) => {
+    const raw = values[name];
+    const value = Array.isArray(raw) ? raw.join('\n') : raw == null ? '' : String(raw);
+    if (type === 'checkbox') return <label class="toggle"><input type="checkbox" name={name} checked={raw === true} /> {label}</label>;
+    if (type === 'long' || type === 'optional-long') return <label class="wide">{label}
+      <textarea name={name} rows="3" maxlength={name === 'benefits' ? 6000 : 20000} required={type === 'long'}>{value}</textarea>
+    </label>;
+    if (type === 'status' || type === 'kind') return <label>{label}
+      <select name={name} required>
+        {Object.entries(type === 'status' ? statuses : materialKinds).map(([key, text], index) =>
+          <option value={key} selected={key === value || (!value && index === 0)}>{text}</option>
+        )}
+      </select>
+    </label>;
+    return <label>{label}
+      <input name={name} type={type === 'number' || type === 'price' ? 'number' : type === 'url' ? 'url' : 'text'}
+        min={type === 'number' ? 1 : type === 'price' ? 0 : undefined} step={type === 'price' ? '.01' : undefined}
+        maxlength={2048} value={value} required={type !== 'optional' && type !== 'price'} />
+    </label>;
+  })}
+  <button class="button primary">{values.id || entity === 'program' ? 'Guardar cambios' : 'Crear'}</button>
+</form>
+<style>
+  .editorial-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; max-width: 48rem; padding-block: 1rem; }
+  .editorial-form label { display: grid; align-content: start; gap: .3rem; }
+  .wide { grid-column: 1 / -1; }
+  textarea { width: 100%; font: inherit; border: 1px solid #7a94ae; border-radius: var(--radius); padding: .5rem; }
+  .editorial-form .toggle { display: flex; gap: .55rem; align-items: center; }
+  button { justify-self: start; grid-column: 1 / -1; }
+  @media (max-width: 40rem) { .editorial-form { grid-template-columns: 1fr; } }
+</style>

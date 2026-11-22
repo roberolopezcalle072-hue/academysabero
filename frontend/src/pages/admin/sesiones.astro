@@ -1,0 +1,151 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import { dateTime } from '../../features/learning/presentation/format';
+import SessionForm from '../../features/live-training/presentation/SessionForm.astro';
+import { attendanceStates, sessionStates } from '../../features/live-training/presentation/session-format';
+import { loadAdministration, loadRoster, submitSessionAction } from '../../features/live-training/infrastructure/live-training-api';
+
+import { siteUrl } from '../../shared/config/server';
+
+const token = Astro.locals.accessToken;
+if (!token || Astro.locals.member?.role !== 'admin') return Astro.redirect('/ingresar', 303);
+const query = Astro.url.searchParams;
+const pageNumber = (value: string | null) => value && /^[1-9]\d{0,5}$/.test(value) ? Number(value) : 1;
+const page = pageNumber(query.get('page'));
+const rosterPage = pageNumber(query.get('asistencia'));
+const present = query.get('presentes') === '1';
+const candidate = query.get('sesion') ?? '';
+const selected = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(candidate) ? candidate : '';
+const listPath = `/admin/sesiones?page=${page}`;
+const sessionPath = (id: string, attendance = 1, onlyPresent = false) =>
+  `${listPath}&sesion=${id}&asistencia=${attendance}&presentes=${onlyPresent ? 1 : 0}`;
+const actionPath = selected ? sessionPath(selected, rosterPage, present) : listPath;
+const feedback = { guardada: 'Sesión guardada.', cancelada: 'Sesión cancelada.', asistencia: 'Asistencia guardada.' };
+const state = query.get('estado') as keyof typeof feedback | null;
+let message = state && Object.hasOwn(feedback, state) ? feedback[state] : '';
+
+if (Astro.request.method === 'POST') {
+  if (Astro.request.headers.get('origin') !== siteUrl().origin) {
+    return new Response(null, { status: 403 });
+  }
+  const form = await Astro.request.formData().catch(() => null);
+  const action = form?.get('action');
+  const response = form ? await submitSessionAction(token, form).catch(() => null) : null;
+  if (response?.ok) {
+    if (action === 'save') {
+      const { id } = await response.json();
+      return Astro.redirect(`${sessionPath(id)}&estado=guardada#sesion`, 303);
+    }
+    if (action === 'cancel') return Astro.redirect(`${actionPath}&estado=cancelada#sesion`, 303);
+    return Astro.redirect(`${actionPath}&estado=asistencia#asistencia`, 303);
+  }
+  Astro.response.status = response?.status ?? 503;
+  message = response?.status === 400 || response?.status === 409
+    ? 'No se pudo guardar. Revisa el día, los horarios, los enlaces o el estado de la sesión.'
+    : 'No se pudo realizar la operación.';
+}
+
+const [data, roster] = await Promise.all([
+  loadAdministration(token, page, selected),
+  selected ? loadRoster(token, selected, rosterPage, present) : Promise.resolve(null),
+]);
+if ((!data || (data.selected && !roster)) && Astro.response.status === 200) Astro.response.status = 503;
+const session = data?.selected;
+const canRecord = session && (session.status === 'scheduled' || session.status === 'completed') && Date.parse(session.starts_at) <= Date.now();
+---
+<BaseLayout title="Gestión de sesiones" privatePage>
+  <div class="shell page stack live-admin">
+    <a href="/admin">Volver a administración</a>
+    <header class="stack compact">
+      <p class="kicker">Formación en directo</p>
+      <h1 class="panel-title">Gestión de sesiones</h1>
+      <p>Programa clases, publica los enlaces de Meet y registra la asistencia manualmente.</p>
+    </header>
+    {message && <p class="notice" role="status">{message}</p>}
+    {data ? (
+      <>
+        <section class="section stack compact">
+          <h2>Sesiones</h2>
+          {data.sessions.length ? <ul class="rows">
+            {data.sessions.map(item => <li>
+              <div>
+                <a href={`${sessionPath(item.id)}#sesion`}>{item.title}</a>
+                <p class="meta">{item.academy_courses.name}{item.program_day ? ` · Día ${item.program_day}` : ''} · <time datetime={item.starts_at}>{dateTime(item.starts_at)}</time> (Lima)</p>
+              </div>
+              <span class="meta">{sessionStates[item.status]}</span>
+            </li>)}
+          </ul> : <p>No hay sesiones en esta página.</p>}
+          {(page > 1 || data.hasNext) && <nav aria-label="Paginación de sesiones">
+            {page > 1 && <a href={`/admin/sesiones?page=${page - 1}`}>Anterior</a>}
+            {data.hasNext && <a href={`/admin/sesiones?page=${page + 1}`}>Siguiente</a>}
+          </nav>}
+          {data.courses.length > 0 ? <details>
+            <summary>Crear una sesión</summary>
+            <SessionForm courses={data.courses} action={listPath} />
+          </details> : <p>Primero <a href="/admin/cursos">crea un curso</a> para programar una sesión.</p>}
+        </section>
+        {session && (
+          <>
+            <section id="sesion" class="section stack compact">
+              <h2>{session.title}</h2>
+              <p class="meta">{sessionStates[session.status]} · {session.academy_courses.name} · <time datetime={session.starts_at}>{dateTime(session.starts_at)}</time> (Lima)</p>
+              {session.status !== 'cancelled' && <SessionForm session={session} courses={[]} action={actionPath} />}
+              {(session.status === 'draft' || session.status === 'scheduled') &&
+                <form method="post" action={actionPath}>
+                  <input type="hidden" name="id" value={session.id} />
+                  <button class="button secondary" name="action" value="cancel">Cancelar sesión</button>
+                </form>}
+            </section>
+            <section id="asistencia" class="section stack compact">
+              <h2>Asistencia</h2>
+              {!canRecord && <p class="meta">Puedes registrar la asistencia cuando comience una sesión programada.</p>}
+              <nav aria-label="Filtrar asistencia">
+                <a href={`${sessionPath(session.id)}#asistencia`} aria-current={!present ? 'page' : undefined}>Todos los alumnos</a>
+                <a href={`${sessionPath(session.id, 1, true)}#asistencia`} aria-current={present ? 'page' : undefined}>Solo asistentes</a>
+              </nav>
+              {roster ? (
+                roster.items.length ? <ul class="rows">
+                  {roster.items.map(student => <li>
+                    <div>
+                      <strong>{student.full_name}</strong>
+                      <p class="meta">{student.google_email}</p>
+                    </div>
+                    {canRecord ? <form method="post" action={actionPath} class="attendance">
+                      <input type="hidden" name="id" value={session.id} />
+                      <input type="hidden" name="student" value={student.student_id} />
+                      <label>
+                        <span class="visually-hidden">Asistencia de {student.full_name}</span>
+                        <select name="status" required>
+                          <option value="" selected={!student.attendance}>Sin registrar</option>
+                          {Object.entries(attendanceStates).map(([value, label]) =>
+                            <option value={value} selected={student.attendance === value}>{label}</option>)}
+                        </select>
+                      </label>
+                      <button class="button secondary" name="action" value="attendance">Guardar</button>
+                    </form> : <span class="meta">{student.attendance ? attendanceStates[student.attendance] : 'Sin registrar'}</span>}
+                  </li>)}
+                </ul> : <p>{present ? 'No hay asistentes registrados en esta página.' : 'No hay alumnos en esta página.'}</p>
+              ) : <p class="notice" role="status">No se pudo cargar la asistencia.</p>}
+              {(rosterPage > 1 || roster?.hasNext) && <nav aria-label="Paginación de alumnos">
+                {rosterPage > 1 && <a href={`${sessionPath(session.id, rosterPage - 1, present)}#asistencia`}>Anterior</a>}
+                {roster?.hasNext && <a href={`${sessionPath(session.id, rosterPage + 1, present)}#asistencia`}>Siguiente</a>}
+              </nav>}
+            </section>
+          </>
+        )}
+        {selected && !session && <p role="status">No se encontró la sesión.</p>}
+      </>
+    ) : <p class="notice" role="status">No se pudo cargar la gestión de sesiones.</p>}
+  </div>
+</BaseLayout>
+<style>
+  .live-admin { gap: 2rem; }
+  .section, .rows, details { width: 100%; }
+  .section { border-top: 1px solid var(--line); padding-top: 1rem; }
+  .rows { list-style: none; padding: 0; margin: 0; }
+  .rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem; border-bottom: 1px solid var(--line); padding-block: .8rem; overflow-wrap: anywhere; }
+  .meta { color: var(--muted); }
+  .attendance { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+  summary { cursor: pointer; color: var(--link); font-weight: 700; padding-bottom: .75rem; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+</style>

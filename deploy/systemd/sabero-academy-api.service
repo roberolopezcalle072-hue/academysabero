@@ -1,0 +1,28 @@
+[Unit]
+Description=SABERO Academy NestJS API
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+User=sabero
+Group=sabero
+WorkingDirectory=/opt/sabero-academy/current/backend
+Environment=NODE_ENV=production
+Environment=NODE_OPTIONS=--max-old-space-size=160
+EnvironmentFile=/etc/sabero-academy/backend.env
+ExecStart=/usr/bin/node dist/main.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+MemoryHigh=240M
+MemoryMax=320M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

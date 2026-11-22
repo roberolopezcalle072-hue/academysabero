@@ -1,0 +1,52 @@
+---
+import BaseLayout from '../shared/presentation/BaseLayout.astro';
+
+const state = Astro.url.searchParams.get('estado');
+const messages = new Map([
+  ['acceso', 'Esta cuenta no tiene acceso al campus. Contacta con SABERO Consulting si necesitas autorización.'],
+  ['servicio', 'El servicio de acceso no está disponible. Inténtalo de nuevo.'],
+  ['oauth', 'No se pudo iniciar sesión. Vuelve a intentarlo con tu cuenta autorizada de Google.'],
+  ['matricula', 'Para entrar al campus necesitas una matrícula activa. Si recibiste un código, ingrésalo aquí.'],
+  ['codigo', 'No se pudo canjear el código. Comprueba que corresponde a esta cuenta y sigue vigente.'],
+]);
+const message = state ? messages.get(state) : undefined;
+const redeem = state === 'matricula' || state === 'codigo' || state === 'activar';
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+---
+<BaseLayout title="Ingresar">
+  <section class="login">
+    <div class="shell login-grid">
+      <div class="stack brand-block">
+        <p class="kicker">SABERO Consulting</p>
+        <h1 class="panel-title">Acceso al campus</h1>
+        <p>Formación privada de SABERO Academy.</p>
+      </div>
+      <div class="stack login-form">
+        <h2>{redeem ? 'Activa tu matrícula' : 'Ingresa a tu cuenta'}</h2>
+        {message ? <p class="notice" role="status">{message}</p> :
+          <p>{redeem ? 'Ingresa el código recibido para asociar el curso a tu cuenta.' : 'Continúa con la cuenta de Google autorizada por la academia.'}</p>}
+        {redeem ? (
+          <>
+            <form action="/auth/canjear" method="post" class="stack compact">
+              <label for="code">Código de matrícula</label>
+              <input id="code" name="code" minlength="32" maxlength="128" autocomplete="off" autocapitalize="off" spellcheck="false" required />
+              <button class="button primary">Activar matrícula</button>
+            </form>
+            <form action="/auth/salir" method="post"><button class="button secondary">Cerrar sesión</button></form>
+          </>
+        ) : (
+          <form action="/auth/google" method="post"><button class="button primary">Continuar con Google</button></form>
+        )}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .login { min-height: 32rem; display: grid; align-items: center; background: var(--navy); }
+  .login-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 6vw, 6rem); align-items: center; padding-block: clamp(2rem, 7vw, 6rem); }
+  .brand-block { color: var(--white); border-left: 3px solid var(--cyan); padding-left: clamp(1rem, 3vw, 2rem); }
+  .brand-block .kicker { color: var(--cyan); }
+  .login-form { background: var(--white); border-top: 3px solid var(--blue); padding: clamp(1.25rem, 4vw, 3rem); }
+  @media (max-width: 44rem) { .login-grid { grid-template-columns: 1fr; } }
+</style>

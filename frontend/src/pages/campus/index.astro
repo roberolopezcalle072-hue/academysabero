@@ -1,0 +1,96 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import CampusNavigation from '../../features/learning/presentation/CampusNavigation.astro';
+import { duration, dateTime, lessonUrl } from '../../features/learning/presentation/format';
+import { loadCampus } from '../../features/learning/infrastructure/learning-api';
+
+const token = Astro.locals.accessToken;
+if (!token) return Astro.redirect('/ingresar', 303);
+const response = await loadCampus(token);
+const data = response.status === 'ok' ? response.value : null;
+if (!data) Astro.response.status = 503;
+const next = data?.pending[0];
+const session = data?.next_session;
+const inProgress = session && new Date(session.starts_at).getTime() <= Date.now();
+---
+<BaseLayout title="Campus" privatePage>
+  <CampusNavigation />
+  <div class="shell page stack campus-home">
+    <header class="stack compact">
+      <p class="kicker">Campus privado</p>
+      <h1 class="panel-title">{data?.name ? `Hola, ${data.name}` : 'Tu campus'}</h1>
+    </header>
+    {data ? (
+      <>
+        <div class="agenda">
+          <section class="stack compact">
+            <h2>Tu siguiente actividad</h2>
+            {next ? (
+              <>
+                <p class="kicker">{next.course} · Día {next.day_number}</p>
+                <h3>{next.title}</h3>
+                <a class="button primary" href={lessonUrl(next.course_id, next.id)}>Continuar lección</a>
+              </>
+            ) : <p>No tienes actividades pendientes.</p>}
+          </section>
+          <section id="sesion" class="stack compact">
+            <h2>{inProgress ? 'Sesión en curso' : 'Próxima sesión en vivo'}</h2>
+            {session ? (
+              <>
+                <h3>{session.title}</h3>
+                <p>{session.course} · <time datetime={session.starts_at}>{dateTime(session.starts_at)} (Lima)</time></p>
+                <a class="button secondary" href={session.meet_url} target="_blank" rel="noopener noreferrer">Abrir Google Meet</a>
+              </>
+            ) : <p>No hay sesiones programadas.</p>}
+            {Astro.locals.member?.role === 'student' && <a href="/campus/sesiones">Ver agenda y grabaciones</a>}
+          </section>
+        </div>
+        <section id="cursos" class="stack compact full">
+          <h2>Mis cursos</h2>
+          {data.courses.length ? <ul class="course-list">
+            {data.courses.map(course => (
+              <li>
+                <img src={course.image_path} alt="" width="160" height="100" loading="lazy" />
+                <div class="stack compact">
+                  <h3><a href={`/campus/cursos/${course.id}`}>{course.name}</a></h3>
+                  <p>{duration(course.duration_minutes)}</p>
+                  <p class="progress-label"><progress value={course.progress} max="100" aria-label={`Progreso en ${course.name}`} /> {course.progress}% completado</p>
+                </div>
+                <a class="button secondary" href={`/campus/cursos/${course.id}`}>Ver lecciones y materiales</a>
+              </li>
+            ))}
+          </ul> : <p>Todavía no hay cursos publicados para tu matrícula.</p>}
+        </section>
+        {data.pending.length > 1 && <section class="stack compact full">
+          <h2>Otras actividades pendientes</h2>
+          <ol class="pending">
+            {data.pending.slice(1).map(item => <li>
+              <span>{item.course} · Día {item.day_number}</span>
+              <a href={lessonUrl(item.course_id, item.id)}>{item.title}</a>
+            </li>)}
+          </ol>
+        </section>}
+        {Astro.locals.member?.role === 'student' &&
+          <a href="/ingresar?estado=activar">Canjear un código de matrícula</a>}
+      </>
+    ) : <p class="notice" role="status">No se pudo cargar el campus. Vuelve a intentarlo en unos minutos.</p>}
+  </div>
+</BaseLayout>
+<style>
+  .campus-home { gap: 2.75rem; }
+  .full, .agenda, .course-list, .pending { width: 100%; }
+  .agenda { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.5rem; }
+  .agenda section { align-content: start; border-top: 3px solid var(--blue); padding: 1.5rem; background: var(--light); }
+  .course-list, .pending { list-style: none; margin: 0; padding: 0; }
+  .course-list li { display: grid; grid-template-columns: 10rem minmax(0, 1fr) auto; gap: 1.25rem; align-items: center; padding-block: 1rem; border-bottom: 1px solid var(--line); }
+  img { object-fit: cover; background: var(--light); width: 100%; }
+  .progress-label { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+  progress { accent-color: var(--blue); }
+  .pending li { display: grid; padding-block: .75rem; border-bottom: 1px solid var(--line); }
+  .pending span { color: var(--muted); }
+  @media (max-width: 50rem) {
+    .agenda { grid-template-columns: 1fr; }
+    .course-list li { grid-template-columns: 7rem minmax(0, 1fr); }
+    .course-list li > a { grid-column: 1 / -1; justify-self: start; }
+  }
+</style>

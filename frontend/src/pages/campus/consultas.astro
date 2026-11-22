@@ -1,0 +1,77 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import CampusNavigation from '../../features/learning/presentation/CampusNavigation.astro';
+import { dateTime } from '../../features/learning/presentation/format';
+import { loadInquiries, sendInquiry } from '../../features/learning/infrastructure/learning-api';
+import { siteUrl } from '../../shared/config/server';
+
+const token = Astro.locals.accessToken;
+if (!token) return Astro.redirect('/ingresar', 303);
+if (Astro.locals.member?.role !== 'student') return Astro.redirect('/campus', 303);
+const pageParam = Astro.url.searchParams.get('page') ?? '1';
+const page = /^[1-9]\d{0,5}$/.test(pageParam) ? Number(pageParam) : 1;
+let message = Astro.url.searchParams.get('enviada') === '1' ? 'Consulta enviada.' : '';
+let subject = '';
+let body = '';
+
+if (Astro.request.method === 'POST') {
+  if (Astro.request.headers.get('origin') !== siteUrl().origin) return new Response(null, { status: 403 });
+  const form = await Astro.request.formData().catch(() => null);
+  subject = String(form?.get('subject') ?? '');
+  body = String(form?.get('body') ?? '');
+  const response = await sendInquiry(token, subject, body).catch(() => null);
+  if (response?.ok) return Astro.redirect('/campus/consultas?enviada=1', 303);
+  Astro.response.status = response?.status ?? 503;
+  message = response?.status === 400 ? 'Revisa el asunto y el mensaje.' : 'No se pudo enviar la consulta.';
+}
+
+const result = await loadInquiries(token, page);
+const data = result.status === 'ok' ? result.value : null;
+if (!data && Astro.response.status === 200) Astro.response.status = 503;
+const status = { open: 'Abierta', answered: 'Respondida', closed: 'Cerrada' };
+---
+<BaseLayout title="Consultas" privatePage>
+  <CampusNavigation />
+  <div class="shell page stack inquiries">
+    <h1 class="panel-title">Consultas</h1>
+    {message && <p class="notice" role="status">{message}</p>}
+    <section class="stack">
+      <h2>Nueva consulta</h2>
+      <form action="/campus/consultas" method="post" class="stack compact">
+        <label for="subject">Asunto</label>
+        <input id="subject" name="subject" maxlength="160" value={subject} required />
+        <label for="message">Mensaje</label>
+        <textarea id="message" name="body" minlength="1" maxlength="5000" rows="5" required>{body}</textarea>
+        <button class="button primary">Enviar consulta</button>
+      </form>
+    </section>
+    <section class="stack history">
+      <h2>Historial</h2>
+      {data ? (
+        data.items.length ? data.items.map(item => <article class="stack compact inquiry">
+          <div class="stack compact"><h3>{item.subject}</h3><p class="meta">{status[item.status]} · <time datetime={item.created_at}>{dateTime(item.created_at)}</time></p></div>
+          <p class="copy">{item.body}</p>
+          {item.academy_inquiry_replies.map(reply => <blockquote>
+            <p class="meta">Administración · <time datetime={reply.created_at}>{dateTime(reply.created_at)}</time></p>
+            <p class="copy">{reply.body}</p>
+          </blockquote>)}
+        </article>) : <p>No hay consultas en esta página.</p>
+      ) : <p role="status">No se pudo cargar el historial.</p>}
+      {(page > 1 || data?.hasNext) && <nav aria-label="Paginación de consultas">
+        {page > 1 && <a href={`/campus/consultas?page=${page - 1}`}>Anterior</a>}
+        {data?.hasNext && <a href={`/campus/consultas?page=${page + 1}`}>Siguiente</a>}
+      </nav>}
+    </section>
+  </div>
+</BaseLayout>
+<style>
+  .inquiries { gap: 2rem; }
+  form, .history, .inquiry { width: 100%; }
+  form { max-width: 42rem; }
+  input, textarea { width: 100%; }
+  textarea { font: inherit; border: 1px solid #7a94ae; border-radius: var(--radius); padding: .55rem .65rem; }
+  .history, .inquiry { border-top: 1px solid var(--line); padding-top: 1rem; }
+  .meta { color: var(--muted); font-size: .9rem; }
+  .copy { white-space: pre-wrap; overflow-wrap: anywhere; }
+  blockquote { margin: 0; padding: .75rem 1rem; background: var(--light); border-left: 2px solid var(--blue); }
+</style>

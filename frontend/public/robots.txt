@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /campus
+Disallow: /auth/
+
+Sitemap: https://academy.saberoconsulting.com/sitemap.xml

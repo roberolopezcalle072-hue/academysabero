@@ -1,0 +1,60 @@
+---
+import type { Session } from '../domain/session';
+import { limaInput } from './session-format';
+
+interface Props {
+  session?: Session;
+  courses: { id: string; name: string }[];
+  action: string;
+}
+const { session, courses, action } = Astro.props;
+const ended = session && new Date(session.ends_at).getTime() <= Date.now();
+---
+<form method="post" action={action} class="session-form">
+  <input type="hidden" name="action" value="save" />
+  {session ? (
+    <>
+      <input type="hidden" name="id" value={session.id} />
+      <input type="hidden" name="course" value={session.course_id} />
+      <p class="wide"><strong>Curso</strong> · {session.academy_courses.name}</p>
+    </>
+  ) : <label>Curso
+    <select name="course" required>
+      <option value="">Selecciona un curso</option>
+      {courses.map(course => <option value={course.id}>{course.name}</option>)}
+    </select>
+  </label>}
+  <label>Nombre<input name="title" value={session?.title ?? ''} maxlength="160" required /></label>
+  <label>Día del programa<input type="number" name="day" min="1" max="30" value={session?.program_day ?? undefined} required /></label>
+  <label>Estado
+    <select name="status" required>
+      {session?.status !== 'completed' && <option value="draft" selected={!session || session.status === 'draft'}>Borrador</option>}
+      {session?.status !== 'completed' && <option value="scheduled" selected={session?.status === 'scheduled'}>Programada</option>}
+      {(ended || session?.status === 'completed') && <option value="completed" selected={session?.status === 'completed'}>Finalizada</option>}
+    </select>
+  </label>
+  <label>Inicio · hora de Lima<input type="datetime-local" name="starts" value={limaInput(session?.starts_at)} required /></label>
+  <label>Fin · hora de Lima<input type="datetime-local" name="ends" value={limaInput(session?.ends_at)} required /></label>
+  <label class="wide">Descripción<textarea name="description" rows="4" maxlength="5000" required>{session?.description ?? ''}</textarea></label>
+  <label class="wide">Enlace de Google Meet
+    <input type="url" name="meet" value={session?.meet_url ?? ''} maxlength="2048" />
+    <small>Requerido para publicar la sesión como programada.</small>
+  </label>
+  <label class="wide">Grabación de recuperación en Drive
+    <input type="url" name="recording" value={session?.academy_session_recovery?.recording_url ?? ''} maxlength="2048" />
+  </label>
+  <label class="wide">Material complementario en Drive o Docs
+    <input type="url" name="material" value={session?.academy_session_recovery?.material_url ?? ''} maxlength="2048" />
+    <small>Los recursos se muestran cuando la sesión está finalizada y su horario ha terminado.</small>
+  </label>
+  <button class="button primary">{session ? 'Guardar sesión' : 'Crear sesión'}</button>
+</form>
+<style>
+  .session-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; width: min(100%, 46rem); }
+  label { display: grid; gap: .3rem; align-content: start; }
+  .wide, button { grid-column: 1 / -1; }
+  button { justify-self: start; }
+  small { color: var(--muted); font-size: .875rem; }
+  textarea { width: 100%; font: inherit; padding: .55rem; border: 1px solid #7a94ae; border-radius: var(--radius); }
+  @media (max-width: 42rem) { .session-form { grid-template-columns: 1fr; } }
+</style>

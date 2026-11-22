@@ -1,0 +1,95 @@
+---
+import BaseLayout from '../shared/presentation/BaseLayout.astro';
+import { loadProgram } from '../features/learning/infrastructure/learning-api';
+
+const result = await loadProgram();
+const program = result.status === 'ok' ? result.value : null;
+if (result.status === 'unavailable') Astro.response.status = 503;
+Astro.response.headers.set('Cache-Control', 'no-store');
+const price = program?.launch_price != null && program.currency
+  ? new Intl.NumberFormat('es-PE', { style: 'currency', currency: program.currency }).format(program.launch_price)
+  : null;
+---
+<BaseLayout title="Formación profesional">
+  <section class="hero">
+    <div class="shell hero-content">
+      <div class="stack">
+        <p class="kicker">SABERO Consulting</p>
+        <h1>{program?.title ?? 'SABERO Academy'}</h1>
+        <p class="intro">{program?.introduction ?? 'Campus privado de formación de SABERO Consulting.'}</p>
+        <div class="hero-actions">
+          {program && <a class="button hero-action" href="#inscripcion">Información de inscripción</a>}
+          <a class="button outline" href="/ingresar">Acceso de alumnos</a>
+        </div>
+      </div>
+      {program?.welcome_drive_file_id ? (
+        <iframe
+          title="Video de bienvenida"
+          src={`https://drive.google.com/file/d/${encodeURIComponent(program.welcome_drive_file_id)}/preview`}
+          referrerpolicy="no-referrer"
+          loading="lazy"
+          allowfullscreen
+        ></iframe>
+      ) : <div class="geometry" aria-hidden="true"><span></span></div>}
+    </div>
+  </section>
+  {program ? (
+    <div class="shell page stack overview">
+      <section class="formation" aria-labelledby="formacion">
+        <div class="stack">
+          <h2 id="formacion">La formación</h2>
+          <p class="copy">{program.description}</p>
+        </div>
+        <dl>
+          <div><dt>Duración</dt><dd>{program.duration_text}</dd></div>
+          {price && <div><dt>Precio de lanzamiento</dt><dd>{price}</dd></div>}
+        </dl>
+      </section>
+      {program.benefits.length > 0 && <section class="stack benefits">
+        <h2>Beneficios del programa</h2>
+        <ul>{program.benefits.map(benefit => <li>{benefit}</li>)}</ul>
+      </section>}
+      <section id="inscripcion" class="stack registration">
+        <h2>Inscripción</h2>
+        <p class="copy">{program.registration_text}</p>
+        <a class="button primary" href={program.registration_url}>Solicitar inscripción</a>
+      </section>
+    </div>
+  ) : (
+    <section class="shell page stack">
+      <h2>Programa de formación</h2>
+      <p role="status">{result.status === 'unavailable'
+        ? 'No se pudo cargar la información del programa. Inténtalo de nuevo más tarde.'
+        : 'La información del próximo programa aún no está publicada.'}</p>
+    </section>
+  )}
+</BaseLayout>
+<style>
+  .hero { background: var(--navy); color: var(--white); }
+  .hero-content { display: grid; grid-template-columns: 1.07fr .93fr; align-items: center; gap: clamp(2rem, 5vw, 5rem); padding-block: clamp(4rem, 9vw, 8rem); }
+  .hero .kicker { color: var(--cyan); }
+  .intro { color: #c9d7e6; font-size: 1.125rem; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  .hero-action { background: var(--cyan); color: var(--navy); }
+  .hero-action:hover { background: var(--white); }
+  iframe { width: 100%; aspect-ratio: 16 / 9; border: 1px solid #466680; }
+  .geometry { position: relative; justify-self: end; width: min(100%, 19rem); aspect-ratio: 1; border: 1px solid #466680; }
+  .geometry::before, .geometry::after, .geometry span { content: ""; position: absolute; }
+  .geometry::before { inset: 15% 0 0 15%; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+  .geometry::after { inset: 34% 15% 0 34%; background: #0e3560; border-top: 1px solid var(--blue); border-left: 1px solid var(--blue); }
+  .geometry span { z-index: 1; inset: 53% 0 0 53%; border-top: 1px solid var(--cyan); border-left: 1px solid var(--cyan); }
+  .overview { gap: 3rem; }
+  .formation, .benefits, .registration { width: 100%; }
+  .formation { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
+  dl { margin: 0; display: grid; gap: 1rem; }
+  dl div, .benefits { border-top: 1px solid var(--line); padding-top: 1rem; }
+  dt { color: var(--muted); }
+  dd { margin: .2rem 0 0; font-size: 1.2rem; font-weight: 750; }
+  .benefits ul { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: .75rem 3rem; margin: 0; padding-left: 1.25rem; }
+  .registration { background: var(--light); border-left: 3px solid var(--blue); padding: clamp(1.25rem, 4vw, 2.5rem); }
+  .copy { white-space: pre-line; }
+  @media (max-width: 48rem) {
+    .hero-content, .formation, .benefits ul { grid-template-columns: 1fr; }
+    .geometry { display: none; }
+  }
+</style>

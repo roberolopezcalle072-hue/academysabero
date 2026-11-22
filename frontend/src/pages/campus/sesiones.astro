@@ -1,0 +1,87 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import CampusNavigation from '../../features/learning/presentation/CampusNavigation.astro';
+import { dateTime } from '../../features/learning/presentation/format';
+import { loadAgenda } from '../../features/live-training/infrastructure/live-training-api';
+
+const token = Astro.locals.accessToken;
+if (!token || Astro.locals.member?.role !== 'student') return Astro.redirect('/campus', 303);
+const value = Astro.url.searchParams.get('page') ?? '1';
+const page = /^[1-9]\d{0,5}$/.test(value) ? Number(value) : 1;
+const agenda = await loadAgenda(token, page);
+if (!agenda) Astro.response.status = 503;
+const next = agenda?.upcoming[0];
+const live = next && Date.parse(next.starts_at) <= Date.now();
+---
+<BaseLayout title="Sesiones en vivo" privatePage>
+  <CampusNavigation />
+  <div class="shell page stack live-page">
+    <header class="stack compact">
+      <p class="kicker">Programa de 30 días</p>
+      <h1 class="panel-title">Sesiones en vivo</h1>
+      <p>La formación se realiza en directo por Google Meet. Las grabaciones quedan disponibles para recuperar clases.</p>
+    </header>
+    {agenda ? (
+      <>
+        <section class="stack compact next">
+          <h2>{live ? 'Sesión en curso' : 'Próxima sesión'}</h2>
+          {next ? (
+            <>
+              <p class="kicker">{next.academy_courses.name}{next.program_day ? ` · Día ${next.program_day}` : ''}</p>
+              <h3>{next.title}</h3>
+              <p><time datetime={next.starts_at}>{dateTime(next.starts_at)}</time> · Hora de Lima</p>
+              {next.description && <p class="copy">{next.description}</p>}
+              {next.meet_url && <a class="button primary" href={next.meet_url} target="_blank" rel="noopener noreferrer">Entrar a Google Meet</a>}
+            </>
+          ) : <p>No hay sesiones en vivo programadas.</p>}
+        </section>
+        {agenda.upcoming.length > 1 && <section class="stack compact section">
+          <h2>Agenda</h2>
+          <ul class="sessions">
+            {agenda.upcoming.slice(1).map(session => <li class="stack compact">
+              <h3>{session.title}</h3>
+              <p class="meta">{session.academy_courses.name}{session.program_day ? ` · Día ${session.program_day}` : ''}</p>
+              <p><time datetime={session.starts_at}>{dateTime(session.starts_at)}</time> · Hora de Lima</p>
+              {session.description && <p class="copy">{session.description}</p>}
+              {session.meet_url && <a class="button secondary" href={session.meet_url} target="_blank" rel="noopener noreferrer">Abrir Google Meet</a>}
+            </li>)}
+          </ul>
+        </section>}
+        <section class="stack compact section">
+          <h2>Sesiones anteriores</h2>
+          {agenda.past.length ? <ul class="sessions">
+            {agenda.past.map(session => (
+              <li class="stack compact">
+                <h3>{session.title}</h3>
+                <p class="meta">{session.academy_courses.name}{session.program_day ? ` · Día ${session.program_day}` : ''} · <time datetime={session.starts_at}>{dateTime(session.starts_at)}</time> (Lima)</p>
+                {session.description && <p class="copy">{session.description}</p>}
+                <div class="resources">
+                  {session.academy_session_recovery?.recording_url &&
+                    <a href={session.academy_session_recovery.recording_url} target="_blank" rel="noopener noreferrer">Ver grabación en Drive</a>}
+                  {session.academy_session_recovery?.material_url &&
+                    <a href={session.academy_session_recovery.material_url} target="_blank" rel="noopener noreferrer">Abrir material de recuperación</a>}
+                  {!session.academy_session_recovery?.recording_url && !session.academy_session_recovery?.material_url &&
+                    <p class="meta">Sin recursos de recuperación publicados.</p>}
+                </div>
+              </li>
+            ))}
+          </ul> : <p>No hay sesiones anteriores en esta página.</p>}
+          {(page > 1 || agenda.hasNext) && <nav aria-label="Paginación del historial">
+            {page > 1 && <a href={`/campus/sesiones?page=${page - 1}`}>Anterior</a>}
+            {agenda.hasNext && <a href={`/campus/sesiones?page=${page + 1}`}>Siguiente</a>}
+          </nav>}
+        </section>
+      </>
+    ) : <p class="notice" role="status">No se pudo cargar la agenda. Inténtalo de nuevo más tarde.</p>}
+  </div>
+</BaseLayout>
+<style>
+  .live-page { gap: 2.25rem; }
+  .section, .sessions, .next { width: 100%; }
+  .next { background: var(--light); border-left: 3px solid var(--blue); padding: clamp(1rem, 4vw, 2rem); }
+  .sessions { list-style: none; margin: 0; padding: 0; }
+  .sessions li { border-top: 1px solid var(--line); padding-block: 1rem; }
+  .meta { color: var(--muted); }
+  .copy { white-space: pre-line; overflow-wrap: anywhere; }
+  .resources { display: flex; flex-wrap: wrap; gap: .65rem 1.5rem; }
+</style>

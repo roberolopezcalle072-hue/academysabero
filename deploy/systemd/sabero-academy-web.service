@@ -1,0 +1,28 @@
+[Unit]
+Description=SABERO Academy Astro web
+Wants=network-online.target sabero-academy-api.service
+After=network-online.target sabero-academy-api.service
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+User=sabero
+Group=sabero
+WorkingDirectory=/opt/sabero-academy/current/frontend
+Environment=NODE_ENV=production
+Environment=NODE_OPTIONS=--max-old-space-size=160
+EnvironmentFile=/etc/sabero-academy/frontend.env
+ExecStart=/usr/bin/node dist/server/entry.mjs
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+MemoryHigh=240M
+MemoryMax=320M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

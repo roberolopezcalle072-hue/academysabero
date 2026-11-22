@@ -1,0 +1,107 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import EditorialForm from '../../features/learning/presentation/EditorialForm.astro';
+import { statuses } from '../../features/learning/presentation/editorial-fields';
+import { loadCatalog, saveEditorial } from '../../features/learning/infrastructure/editorial-api';
+import { siteUrl } from '../../shared/config/server';
+
+const token = Astro.locals.accessToken;
+if (!token || Astro.locals.member?.role !== 'admin') return Astro.redirect('/ingresar', 303);
+const pageValue = Astro.url.searchParams.get('page') ?? '1';
+const page = /^[1-9]\d{0,5}$/.test(pageValue) ? Number(pageValue) : 1;
+const selected = Astro.url.searchParams.get('curso') ?? '';
+const courseId = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(selected) ? selected : '';
+const path = `/admin/cursos?page=${page}${courseId ? `&curso=${courseId}` : ''}`;
+let message = Astro.url.searchParams.get('guardado') === '1' ? 'Cambios guardados.' : '';
+
+if (Astro.request.method === 'POST') {
+  if (Astro.request.headers.get('origin') !== siteUrl().origin) return new Response(null, { status: 403 });
+  const response = await (async () => saveEditorial(token, await Astro.request.formData()))().catch(() => null);
+  if (response?.ok) return Astro.redirect(`${path}&guardado=1`, 303);
+  Astro.response.status = response?.status ?? 503;
+  message = response?.status === 409
+    ? 'Revisa los campos, el formato del enlace y las posiciones repetidas.'
+    : 'No se pudieron guardar los cambios.';
+}
+
+const data = await loadCatalog(token, page, courseId).catch(() => null);
+if (!data && Astro.response.status === 200) Astro.response.status = 503;
+const course = data?.course;
+const state = (value: string) => statuses[value as keyof typeof statuses] ?? value;
+---
+<BaseLayout title="Gestión de cursos" privatePage>
+  <div class="shell page stack editorial">
+    <a href="/admin">Administración de acceso</a>
+    <h1 class="panel-title">Gestión de cursos</h1>
+    {message && <p class="notice" role="status">{message}</p>}
+    {data ? (
+      <>
+        <section class="editorial-section">
+          <details>
+            <summary>Programa de la landing</summary>
+            <EditorialForm entity="program" action={path} values={data.program ?? {}} />
+          </details>
+        </section>
+        <section class="editorial-section stack compact">
+          <h2>Cursos</h2>
+          {data.courses.length > 0 ? <ul class="catalog">
+            {data.courses.map(item => <li>
+              <a href={`/admin/cursos?page=${page}&curso=${item.id}#contenido-curso`}>{item.name}</a>
+              <span>{state(item.status)}</span>
+            </li>)}
+          </ul> : <p>No hay cursos en esta página.</p>}
+          {(page > 1 || data.hasNext) && <nav aria-label="Paginación de cursos">
+            {page > 1 && <a href={`/admin/cursos?page=${page - 1}`}>Anterior</a>}
+            {data.hasNext && <a href={`/admin/cursos?page=${page + 1}`}>Siguiente</a>}
+          </nav>}
+          <details>
+            <summary>Crear curso</summary>
+            <EditorialForm entity="course" action={path} />
+          </details>
+        </section>
+        {course && <section id="contenido-curso" class="editorial-section stack compact">
+          <h2>{course.name}</h2>
+          <details>
+            <summary>Editar curso</summary>
+            <EditorialForm entity="course" action={path} values={course} />
+          </details>
+          <details>
+            <summary>Agregar módulo</summary>
+            <EditorialForm entity="module" action={path} parents={{ course_id: course.id }} />
+          </details>
+          {data.modules.map(module => <details class="outline-entry">
+            <summary>{module.title} · {state(module.status)}</summary>
+            <EditorialForm entity="module" action={path} values={module} />
+            <details class="nested">
+              <summary>Agregar lección</summary>
+              <EditorialForm entity="lesson" action={path} parents={{ course_id: course.id, module_id: module.id }} />
+            </details>
+            {data.lessons.filter(lesson => lesson.module_id === module.id).map(lesson => <details class="nested">
+              <summary>Día {lesson.day_number} · {lesson.title} · {state(lesson.status)}</summary>
+              <EditorialForm entity="lesson" action={path} values={lesson} />
+              <details class="nested">
+                <summary>Agregar material</summary>
+                <EditorialForm entity="material" action={path} parents={{ lesson_id: lesson.id }} />
+              </details>
+              {data.materials.filter(material => material.lesson_id === lesson.id).map(material => <details class="nested">
+                <summary>{material.title}</summary>
+                <EditorialForm entity="material" action={path} values={material} />
+              </details>)}
+            </details>)}
+          </details>)}
+        </section>}
+        {courseId && !course && <p role="status">El curso seleccionado no está disponible.</p>}
+      </>
+    ) : <p class="notice" role="status">No se pudo cargar la gestión de cursos.</p>}
+  </div>
+</BaseLayout>
+<style>
+  .editorial { gap: 2rem; }
+  .editorial-section { width: 100%; border-top: 1px solid var(--line); padding-top: 1rem; }
+  details, .catalog { width: 100%; }
+  summary { cursor: pointer; color: var(--link); padding-block: .45rem; font-weight: 700; }
+  .catalog { list-style: none; padding: 0; margin: 0; }
+  .catalog li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .6rem; border-bottom: 1px solid var(--line); padding-block: .55rem; }
+  .catalog span { color: var(--muted); }
+  .outline-entry, .nested { border-left: 2px solid var(--line); padding-left: .85rem; }
+</style>
