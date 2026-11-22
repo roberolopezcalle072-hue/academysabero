@@ -10,7 +10,8 @@ const catalog = await loadCatalog(token);
 if (!catalog) Astro.response.status = 503;
 const discount = (regular: number, offer: number) => Math.round((1 - offer / regular) * 100);
 ---
-<BaseLayout title="Cursos disponibles" privatePage>
+<BaseLayout title="Cursos disponibles" privatePage dark>
+  <div class="dk">
   <section class="shell page stack">
     <div class="stack compact">
       <p class="kicker">Cursos</p>
@@ -23,8 +24,8 @@ const discount = (regular: number, offer: number) => Math.round((1 - offer / reg
 
     <div class="courses">
       {catalog?.map((c) => (
-        <article class="course">
-          <img src={c.image_path} alt="" width="640" height="360" loading="lazy" />
+        <article class="course dk-card">
+          <img src={c.image_path} alt={`Portada del curso ${c.name}`} width="1500" height="844" />
           <div class="body">
             <span class="tag">-{discount(c.price_regular, c.price_offer)}% oferta de lanzamiento</span>
             <h2>{c.name}</h2>
@@ -32,32 +33,33 @@ const discount = (regular: number, offer: number) => Math.round((1 - offer / reg
             <PromoTimer />
             <p class="price"><s>{money(c.price_regular, c.currency)}</s><strong>{money(c.price_offer, c.currency)}</strong><span>{c.currency}</span></p>
             {c.enrolled ? (
-              <a class="button primary" href="/campus">Ir al curso</a>
+              <a class="dk-btn" href="/campus">Ir al curso</a>
             ) : c.request_status === 'pending' ? (
-              <span class="button outline disabled" aria-disabled="true">Solicitud en revisión</span>
+              <span class="dk-btn ghost" aria-disabled="true">Solicitud en revisión</span>
             ) : (
-              <a class="button amber" href={`/cuenta/inscripcion/${c.id}`}>Inscribirme</a>
+              <a class="dk-btn amber" href={`/cuenta/inscripcion/${c.id}`}>Inscribirme ahora ›</a>
             )}
           </div>
         </article>
       ))}
     </div>
   </section>
+  </div>
 </BaseLayout>
 
 <style>
-  .sub { color: var(--muted); }
-  .courses { width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr)); gap: 1.25rem; }
-  .course { background: var(--white); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; box-shadow: 0 14px 34px rgb(7 27 53 / .07); display: grid; }
-  .course img { width: 100%; height: 12rem; object-fit: cover; object-position: 60% center; display: block; }
-  .body { padding: 1.25rem 1.4rem 1.5rem; display: grid; gap: .85rem; justify-items: start; }
-  .tag { background: #fff4de; color: #9a5b00; border: 1px solid #f6d28b; font-weight: 700; font-size: .75rem; padding: .25rem .7rem; border-radius: 999px; }
-  .desc { color: var(--muted); font-size: .95rem; }
-  .price { display: flex; align-items: baseline; gap: .6rem; }
-  .price s { color: #8a9bb0; font-size: 1.05rem; }
-  .price strong { color: var(--navy); font-size: 2.2rem; font-weight: 800; letter-spacing: -.02em; }
-  .price span { color: var(--muted); font-size: .85rem; }
-  .button.amber { background: #fbb034; color: #0b1a3a; box-shadow: 0 10px 24px rgb(251 176 52 / .35); }
-  .button.amber:hover { background: #ffc35c; box-shadow: none; }
-  .disabled { opacity: .7; cursor: default; }
+  .sub { color: #c7d6f2; }
+  section { padding-block: clamp(2rem, 4vw, 3.5rem); }
+  .courses { width: 100%; display: grid; gap: 1.5rem; }
+  .course { overflow: hidden; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); padding: 0; }
+  .course img { width: 100%; height: 100%; min-height: 18rem; object-fit: cover; display: block; border-right: 1px solid #1f3f86; }
+  @media (max-width: 56rem) { .course { grid-template-columns: minmax(0, 1fr); } .course img { min-height: 0; aspect-ratio: 16 / 9; border-right: 0; border-bottom: 1px solid #1f3f86; } }
+  .body { padding: 1.35rem 1.5rem 1.6rem; display: grid; gap: .9rem; justify-items: start; }
+  .tag { background: rgb(255 178 28 / .14); color: #ffd566; border: 1px solid rgb(255 178 28 / .5); font-weight: 700; font-size: .75rem; padding: .25rem .7rem; border-radius: 999px; }
+  .course h2 { font-size: 1.5rem; letter-spacing: -.02em; }
+  .desc { color: #c7d6f2; font-size: .95rem; }
+  .price { display: flex; align-items: baseline; gap: .7rem; }
+  .price s { color: #8aa0c6; font-size: 1.15rem; text-decoration-color: #e4313f; }
+  .price strong { font-size: 2.8rem; font-weight: 800; letter-spacing: -.04em; line-height: 1; background: linear-gradient(180deg, #ffe27a, #ffb21c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .price span { color: #ffd566; font-size: .85rem; font-weight: 800; }
 </style>

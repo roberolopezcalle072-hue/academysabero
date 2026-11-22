@@ -4,7 +4,7 @@ export const PROMO = {
   anchor: '2026-11-22T00:00:00-05:00',
   cycleDays: 15,
   priceOffer: 199,
-  priceRegular: 499,
+  priceRegular: 399,
   currency: 'USD',
 };
 

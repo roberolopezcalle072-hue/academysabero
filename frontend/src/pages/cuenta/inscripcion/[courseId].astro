@@ -18,16 +18,17 @@ const state = Astro.url.searchParams.get('estado');
 const message = state === 'datos' ? 'Revisa los datos del formulario.' : state === 'terminos' ? 'Debes aceptar los términos para continuar.' : state === 'servicio' ? 'No se pudo enviar tu solicitud. Inténtalo de nuevo.' : '';
 const discount = Math.round((1 - course.price_offer / course.price_regular) * 100);
 ---
-<BaseLayout title={`Inscripción · ${course.name}`} privatePage>
+<BaseLayout title={`Inscripción · ${course.name}`} privatePage dark>
+  <div class="dk">
   <section class="shell page enroll">
     <div class="summary">
       <p class="kicker">Inscripción</p>
       <h1>{course.name}</h1>
-      <img src={course.image_path} alt="" width="640" height="360" />
+      <img src={course.image_path} alt="" width="1500" height="844" />
       <span class="tag">-{discount}% oferta de lanzamiento</span>
       <p class="price"><s>{money(course.price_regular, course.currency)}</s><strong>{money(course.price_offer, course.currency)}</strong><span>{course.currency}</span></p>
       <PromoTimer label="Esta oferta termina en" />
-      <div class="need">
+      <div class="need dk-card">
         <h2>Para obtener algo funcional necesitarás</h2>
         <ul>
           <li>Un servidor <strong>VPS</strong></li>
@@ -40,7 +41,7 @@ const discount = Math.round((1 - course.price_offer / course.price_regular) * 10
       </div>
     </div>
 
-    <form class="form" action="/cuenta/solicitar" method="post">
+    <form class="form dk-card" action="/cuenta/solicitar" method="post">
       <h2>Tus datos</h2>
       {message && <p class="notice" role="status">{message}</p>}
       <input type="hidden" name="courseId" value={course.id} />
@@ -56,35 +57,35 @@ const discount = Math.round((1 - course.price_offer / course.price_regular) * 10
       <label class="check"><input type="checkbox" name="acceptTerms" required />
         <span>He leído y acepto los <a href="/terminos-compra" target="_blank" rel="noopener">términos y condiciones de compra</a>, incluido que debo adquirir por mi cuenta VPS, dominio, plan de suscripción, códigos y DeepSeek.</span>
       </label>
-      <button class="button amber wide">Inscribirme por {money(course.price_offer, course.currency)}</button>
+      <button class="dk-btn amber wide">Inscribirme por {money(course.price_offer, course.currency)}</button>
       <p class="fine">Validaremos tu solicitud y te contactaremos para coordinar el pago y activar tu acceso.</p>
     </form>
   </section>
+  </div>
 </BaseLayout>
 
 <style>
-  .enroll { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1.5rem, 4vw, 3.5rem); align-items: start; }
-  .summary { display: grid; gap: .9rem; justify-items: start; }
-  .summary h1 { font-size: clamp(1.6rem, 2.8vw, 2.3rem); }
-  .summary img { width: 100%; max-width: 28rem; height: 11rem; object-fit: cover; object-position: 60% center; border-radius: 16px; border: 1px solid var(--line); }
-  .tag { background: #fff4de; color: #9a5b00; border: 1px solid #f6d28b; font-weight: 700; font-size: .75rem; padding: .25rem .7rem; border-radius: 999px; }
-  .price { display: flex; align-items: baseline; gap: .6rem; }
-  .price s { color: #8a9bb0; font-size: 1.05rem; }
-  .price strong { color: var(--navy); font-size: 2.4rem; font-weight: 800; letter-spacing: -.02em; }
-  .price span { color: var(--muted); font-size: .85rem; }
-  .need { background: var(--light); border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem 1.3rem; display: grid; gap: .5rem; width: 100%; max-width: 28rem; }
-  .need h2 { font-size: 1rem; }
-  .need ul { margin: 0; padding-left: 1.2rem; display: grid; gap: .25rem; }
-  .need p { color: var(--muted); font-size: .88rem; }
-  .form { background: var(--white); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 20px 44px rgb(7 27 53 / .08); padding: clamp(1.25rem, 3vw, 2rem); display: grid; gap: .6rem; }
-  label { font-weight: 600; font-size: .9rem; color: var(--navy); }
-  label small { font-weight: 400; color: var(--muted); }
-  textarea { font: inherit; border: 1px solid #b6c6d4; border-radius: 10px; padding: .6rem .75rem; resize: vertical; }
-  .check { display: flex; gap: .6rem; align-items: flex-start; font-weight: 400; color: var(--muted); margin-top: .4rem; }
+  .enroll { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(1.5rem, 4vw, 3.5rem); align-items: start; padding-block: clamp(2rem, 4vw, 3.5rem); }
+  .summary { display: grid; gap: 1rem; justify-items: start; }
+  .summary h1 { font-size: clamp(1.7rem, 3vw, 2.5rem); letter-spacing: -.03em; }
+  .summary img { width: 100%; height: auto; max-width: 34rem; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 18px; border: 1.5px solid #2a63d6; box-shadow: 0 0 36px rgb(31 123 255 / .3); }
+  .tag { background: rgb(255 178 28 / .14); color: #ffd566; border: 1px solid rgb(255 178 28 / .5); font-weight: 700; font-size: .75rem; padding: .25rem .7rem; border-radius: 999px; }
+  .price { display: flex; align-items: baseline; gap: .7rem; }
+  .price s { color: #8aa0c6; font-size: 1.2rem; text-decoration-color: #e4313f; }
+  .price strong { font-size: 3rem; font-weight: 800; letter-spacing: -.04em; line-height: 1; background: linear-gradient(180deg, #ffe27a, #ffb21c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .price span { color: #ffd566; font-size: .85rem; font-weight: 800; }
+  .need { padding: 1.2rem 1.4rem; display: grid; gap: .55rem; width: 100%; max-width: 34rem; border-radius: 20px; }
+  .need h2 { font-size: 1.05rem; }
+  .need ul { margin: 0; padding-left: 1.2rem; display: grid; gap: .3rem; color: #dbe7ff; }
+  .need strong { color: #fff; }
+  .need p { color: #aebfdc; font-size: .88rem; }
+  .form { padding: clamp(1.4rem, 3vw, 2.2rem); display: grid; gap: .6rem; }
+  label { font-weight: 600; font-size: .9rem; }
+  label small { font-weight: 400; color: #8aa0c6; }
+  textarea { font: inherit; padding: .6rem .75rem; resize: vertical; }
+  .check { display: flex; gap: .6rem; align-items: flex-start; font-weight: 400; color: #c7d6f2; margin-top: .4rem; }
   .check input { margin-top: .25rem; min-height: 0; }
-  .button.amber { background: #fbb034; color: #0b1a3a; box-shadow: 0 10px 24px rgb(251 176 52 / .35); font-size: 1rem; }
-  .button.amber:hover { background: #ffc35c; box-shadow: none; }
-  .wide { width: 100%; margin-top: .4rem; }
-  .fine { color: var(--muted); font-size: .82rem; }
+  .wide { width: 100%; margin-top: .5rem; font-size: 1.05rem; }
+  .fine { color: #8aa0c6; font-size: .82rem; }
   @media (max-width: 52rem) { .enroll { grid-template-columns: minmax(0, 1fr); } }
 </style>

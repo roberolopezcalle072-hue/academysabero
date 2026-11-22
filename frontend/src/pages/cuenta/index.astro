@@ -10,23 +10,24 @@ const pending = catalog?.filter((c) => c.request_status === 'pending') ?? [];
 const sent = Astro.url.searchParams.get('estado') === 'solicitud-enviada';
 const duplicate = Astro.url.searchParams.get('estado') === 'solicitud-existente';
 ---
-<BaseLayout title="Mi cuenta" privatePage>
+<BaseLayout title="Mi cuenta" privatePage dark>
+  <div class="dk">
   <section class="shell page account">
     {sent && <p class="notice ok" role="status">¡Solicitud enviada! La revisaremos y te avisaremos cuando tu inscripción esté confirmada.</p>}
     {duplicate && <p class="notice" role="status">Ya tienes una solicitud en revisión para ese curso.</p>}
 
     {member ? (
-      <div class="card">
+      <div class="card dk-card">
         <p class="kicker">Mi cuenta</p>
         <h1>Bienvenido de nuevo</h1>
         <p>Tienes acceso a tus cursos en el campus. También puedes ver otros cursos disponibles.</p>
         <div class="actions">
-          <a class="button primary" href="/campus">Ir al campus</a>
-          <a class="button outline" href="/cuenta/cursos">Ver más cursos</a>
+          <a class="dk-btn" href="/campus">Ir al campus</a>
+          <a class="dk-btn ghost" href="/cuenta/cursos">Ver más cursos</a>
         </div>
       </div>
     ) : (
-      <div class="card empty">
+      <div class="card dk-card empty">
         <span class="badge-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM4 21.5A2.5 2.5 0 0 1 6.5 19H20" /></svg>
         </span>
@@ -35,19 +36,19 @@ const duplicate = Astro.url.searchParams.get('estado') === 'solicitud-existente'
         {pending.length > 0 ? (
           <p class="notice" role="status">Tienes {pending.length === 1 ? 'una solicitud' : `${pending.length} solicitudes`} en revisión. Te avisaremos pronto.</p>
         ) : null}
-        <a class="button primary" href="/cuenta/cursos">Ver cursos disponibles</a>
+        <a class="dk-btn" href="/cuenta/cursos">Ver cursos disponibles</a>
       </div>
     )}
   </section>
+  </div>
 </BaseLayout>
 
 <style>
-  .account { display: grid; justify-items: center; }
-  .card { width: min(100%, 38rem); display: grid; gap: 1rem; justify-items: center; text-align: center; padding: clamp(1.5rem, 4vw, 2.5rem); background: var(--white); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 20px 44px rgb(7 27 53 / .08); }
-  .card h1 { font-size: clamp(1.5rem, 2.6vw, 2rem); }
-  .card p { color: var(--muted); }
-  .badge-ico { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 18px; background: #eaf3ff; color: var(--blue); }
+  .account { display: grid; justify-items: center; padding-block: clamp(2rem, 5vw, 4rem); }
+  .card { width: min(100%, 40rem); display: grid; gap: 1rem; justify-items: center; text-align: center; padding: clamp(1.75rem, 4vw, 2.75rem); }
+  .card h1 { font-size: clamp(1.5rem, 2.8vw, 2.1rem); letter-spacing: -.02em; }
+  .badge-ico { display: grid; place-items: center; width: 68px; height: 68px; border-radius: 50%; background: radial-gradient(circle at 30% 25%, #3b86ff, #1546b8); color: #fff; box-shadow: 0 8px 22px rgb(0 0 0 / .35), inset 0 0 0 2px rgb(255 255 255 / .14); }
   .actions { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
-  .notice { width: min(100%, 38rem); margin-bottom: 1rem; }
-  .notice.ok { background: #effaf2; border-color: #bfe6cb; }
+  .notice { width: min(100%, 40rem); margin-bottom: 1rem; }
+  .notice.ok { background: rgb(47 211 122 / .12); border-color: #1f9a5b; }
 </style>

@@ -7,7 +7,7 @@ begin;
 
 -- Precios del curso (oferta y precio normal).
 alter table public.academy_courses
-  add column price_regular numeric(10,2) not null default 499 check (price_regular >= 0),
+  add column price_regular numeric(10,2) not null default 399 check (price_regular >= 0),
   add column price_offer numeric(10,2) not null default 199 check (price_offer >= 0),
   add column currency text not null default 'USD' check (currency ~ '^[A-Z]{3}$');
 
@@ -227,7 +227,7 @@ grant execute on function public.academy_before_user_created(jsonb) to supabase_
 insert into public.academy_courses (name, description, image_path, status, duration_minutes, price_regular, price_offer, currency)
 select 'Agente de IA para ventas',
        'Aprende a construir un agente de IA que atiende a tus clientes por WhatsApp, hace seguimiento, agenda y registra todo en tu propio mini CRM. Incluye automatización con Meta y creación de webs conectadas a tu agente.',
-       '/images/agente-ia.webp', 'published', 600, 499, 199, 'USD'
+       '/images/banner-curso.webp', 'published', 600, 399, 199, 'USD'
 where not exists (select 1 from public.academy_courses);
 
 commit;

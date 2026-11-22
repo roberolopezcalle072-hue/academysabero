@@ -3,8 +3,8 @@ import '../styles/global.css';
 import WhatsAppButton from '../../features/landing/WhatsAppButton.astro';
 import { footerColumns, CONTACT_EMAIL, whatsappUrl } from '../../features/landing/content';
 
-interface Props { title: string; privatePage?: boolean; description?: string }
-const { title, privatePage = false, description: pageDescription } = Astro.props;
+interface Props { title: string; privatePage?: boolean; description?: string; dark?: boolean }
+const { title, privatePage = false, description: pageDescription, dark = false } = Astro.props;
 const member = Astro.locals.member;
 const site = 'https://academy.saberoconsulting.com';
 const description = pageDescription ?? 'Campus privado de formación de SABERO Consulting.';
@@ -70,9 +70,18 @@ const jsonLd = JSON.stringify({
   </head>
   <body>
     <a class="skip" href="#contenido">Ir al contenido</a>
-    <header class="site-header">
+    <header class={`site-header${dark ? ' dark' : ''}`}>
       <div class="shell header-content">
-        <a class="wordmark" href="/" aria-label="SABERO ACADEMY"><img src="/logos/logoapp.webp" alt="SABERO ACADEMY" width="180" height="60" style="display:block;height:42px;width:auto" /></a>
+        {dark ? (
+          <a class="brand" href="/" aria-label="SABERO ACADEMY">
+            <svg class="cap" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#8ec5ff" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M2.5 9 12 4l9.5 5L12 14z" /><path d="M6.5 11.3V16c0 1.4 2.4 2.8 5.5 2.8s5.500-1.400 5.500-2.800v-4.700" /><path d="M21.500 9v6" /></svg>
+            <span class="name"><b>SABERO</b><i>ACADEMY</i></span>
+            <span class="sep" aria-hidden="true"></span>
+            <span class="tag">Formación práctica en<br />Tecnología e Inteligencia Artificial</span>
+          </a>
+        ) : (
+          <a class="wordmark" href="/" aria-label="SABERO ACADEMY"><img src="/logos/logoapp.webp" alt="SABERO ACADEMY" width="180" height="60" style="display:block;height:42px;width:auto" /></a>
+        )}
         <nav aria-label="Navegación principal">
           {privatePage ? (
             <>
