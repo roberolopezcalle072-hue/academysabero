@@ -117,7 +117,7 @@ const price = program?.launch_price != null && program.currency
   )}
 
   <section id="comentarios" class="band alt" aria-labelledby="t-comentarios">
-    <div class="shell">
+    <div class="shell wide">
       <Testimonials />
     </div>
   </section>
@@ -290,4 +290,8 @@ const price = program?.launch_price != null && program.currency
   #vision .values li { padding: 1.3rem 1.5rem; }
   #vision .values h3 { font-size: 1.12rem; }
   #vision .values p { font-size: 1rem; line-height: 1.6; }
+
+  /* Comentarios: contenedor más ancho para que las 5 tarjetas respiren */
+  #comentarios { padding-block: clamp(3rem, 6.5vw, 5.5rem); }
+  .shell.wide { width: min(100% - clamp(2.5rem, 5vw, 5rem), 96rem); }
 </style>
