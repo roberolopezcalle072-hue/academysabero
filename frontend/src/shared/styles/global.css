@@ -35,7 +35,7 @@ h1 { font-size: clamp(2.5rem, 5.4vw, 4.6rem); letter-spacing: -0.035em; }
 h2 { font-size: clamp(1.8rem, 3.2vw, 2.7rem); letter-spacing: -0.03em; }
 h3 { font-size: 1.15rem; letter-spacing: -0.01em; }
 p { max-width: 62ch; }
-.shell { width: min(100% - 2.5rem, 72rem); margin-inline: auto; }
+.shell { width: min(100% - clamp(2rem, 4vw, 4rem), 108rem); margin-inline: auto; }
 
 /* Cabecera blanca y fina */
 .site-header { background: var(--white); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 30; }
