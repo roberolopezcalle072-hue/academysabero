@@ -76,7 +76,7 @@ const price = program?.launch_price != null && program.currency
     </div>
   </section>
 
-  <section id="vision" class="band dark" aria-labelledby="t-vision">
+  <section id="vision" class="band" aria-labelledby="t-vision">
     <div class="shell vision">
       <div class="stack">
         <p class="kicker">{vision.kicker}</p>
@@ -206,8 +206,8 @@ const price = program?.launch_price != null && program.currency
   .copy { white-space: pre-line; }
 
   .cta { background: linear-gradient(160deg, #071b35 30%, #0a2a52 100%); color: var(--white); }
-  .ghost { color: var(--white); border-color: #5b7894; background: transparent; }
-  .ghost:hover { border-color: var(--white); }
+  .ghost { color: var(--navy); border-color: #c3d2de; background: var(--white); }
+  .ghost:hover { border-color: var(--blue); color: var(--blue); }
   .cta h2 { color: var(--white); }
   .cta .lead { color: #c9d7e6; }
   .centered { justify-items: center; text-align: center; }
@@ -223,4 +223,32 @@ const price = program?.launch_price != null && program.currency
     .blob-stage { width: min(88%, 24rem); }
     .chip-top { right: -2%; }
   }
+
+  /* ===== Estilo suave y elegante (esquinas redondeadas finas, sin bandas oscuras) ===== */
+  .hero-copy .button { padding-inline: 1.6rem; }
+  .stats li { border-radius: 16px; box-shadow: 0 6px 20px rgb(7 27 53 / .05); }
+  .card { border-radius: 18px; }
+  .card:hover { box-shadow: 0 16px 36px rgb(7 27 53 / .10); }
+  .icon { border-radius: 14px; }
+  .registration { border-radius: 16px; }
+  iframe { border-radius: 18px; }
+
+  .vision { align-items: start; }
+  .values { gap: 1rem; }
+  .values li { background: var(--light); border: 1px solid var(--line); border-radius: 16px; padding: 1.25rem 1.5rem; }
+  .values h3 { color: var(--navy); margin-bottom: .35rem; }
+  #vision .lead, #vision p { color: var(--muted); }
+
+  .cta { background: #f8fafc; color: var(--navy); border-top: 1px solid var(--line); }
+  .cta h2 { color: var(--navy); }
+  .cta .lead { color: var(--muted); }
+
+  .blob-blue { border-radius: 58% 42% 52% 48% / 48% 55% 45% 52%; }
+  .blob-pink { border-radius: 50% 50% 45% 55% / 55% 45% 55% 45%; }
+  .blob-photo { border: 0; border-radius: 42% 58% 46% 54% / 36% 38% 62% 64%; left: 9%; top: 0; width: 82%; height: 100%; }
+  .chip-dark { border-radius: 999px; }
+  .chip-card { border: 0; border-radius: 14px; }
+  .chip-ico { border-radius: 10px; }
+  .dot { border-radius: 50%; }
+  .ln b { border-radius: 2px; }
 </style>
