@@ -77,7 +77,7 @@ p { max-width: 62ch; }
 .stack { display: grid; justify-items: start; gap: 1.25rem; min-width: 0; }
 .kicker { color: var(--red); font-size: .8rem; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; }
 .panel-title { font-size: clamp(2.5rem, 5vw, 4rem); }
-.notice { padding: 1rem; border-left: 3px solid var(--blue); background: var(--light); }
+.notice { padding: 1rem; border: 1px solid var(--line); background: var(--light); }
 .skip { position: fixed; left: 1rem; top: -5rem; z-index: 40; padding: .5rem; background: var(--white); }
 .skip:focus { top: 1rem; }
 .compact { gap: .75rem; }

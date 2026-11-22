@@ -78,7 +78,7 @@ const live = next && Date.parse(next.starts_at) <= Date.now();
 <style>
   .live-page { gap: 2.25rem; }
   .section, .sessions, .next { width: 100%; }
-  .next { background: var(--light); border-left: 3px solid var(--blue); padding: clamp(1rem, 4vw, 2rem); }
+  .next { background: var(--light); border: 1px solid var(--line); padding: clamp(1rem, 4vw, 2rem); }
   .sessions { list-style: none; margin: 0; padding: 0; }
   .sessions li { border-top: 1px solid var(--line); padding-block: 1rem; }
   .meta { color: var(--muted); }

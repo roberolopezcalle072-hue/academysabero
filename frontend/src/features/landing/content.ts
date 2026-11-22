@@ -54,10 +54,10 @@ export const vision = {
 
 // Comentarios del carrusel (máximo 8). Los actuales son de EJEMPLO (sample: true) y se muestran como ilustrativos.
 // Para publicar comentarios reales: reemplaza estas entradas y quita "sample: true".
-export const testimonials: { name: string; role: string; text: string; sample?: boolean }[] = [
-  { sample: true, name: 'Lucía Fernández', role: 'Dueña de tienda online', text: 'Mi agente ya responde por WhatsApp mientras duermo. Antes perdía clientes por tardar en contestar.' },
-  { sample: true, name: 'Carlos Mendoza', role: 'Jefe comercial', text: 'El seguimiento automático nos devolvió ventas que dábamos por perdidas. Y lo configuramos en pocas semanas.' },
-  { sample: true, name: 'Andrea Salazar', role: 'Consultora independiente', text: 'Armé mi mini CRM paso a paso y por fin tengo todos mis clientes ordenados en un solo lugar.' },
+export const testimonials: { name: string; role: string; text: string; photo?: string; sample?: boolean }[] = [
+  { sample: true, photo: '/images/alumno-ana.webp', name: 'Lucía Fernández', role: 'Dueña de tienda online', text: 'Mi agente ya responde por WhatsApp mientras duermo. Antes perdía clientes por tardar en contestar.' },
+  { sample: true, photo: '/images/alumno-carlos.webp', name: 'Carlos Mendoza', role: 'Jefe comercial', text: 'El seguimiento automático nos devolvió ventas que dábamos por perdidas. Y lo configuramos en pocas semanas.' },
+  { sample: true, photo: '/images/alumno-diego.webp', name: 'Javier Salazar', role: 'Consultor independiente', text: 'Armé mi mini CRM paso a paso y por fin tengo todos mis clientes ordenados en un solo lugar.' },
   { sample: true, name: 'Diego Paredes', role: 'Desarrollador freelance', text: 'Las sesiones en vivo resuelven las dudas al momento. Se nota que el contenido es práctico y está bien probado.' },
   { sample: true, name: 'Valeria Ríos', role: 'Directora de marketing', text: 'Conectar Meta con el agente nos ahorró horas diarias de atender mensajes repetidos.' },
   { sample: true, name: 'Jorge Castillo', role: 'Emprendedor', text: 'Lancé mi web y la conecté con mi agente. Ahora los interesados llegan y son atendidos de inmediato.' },

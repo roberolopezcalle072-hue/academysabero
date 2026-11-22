@@ -19,7 +19,9 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) 
           <svg class="quote-ico" viewBox="0 0 32 32" width="34" height="34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="miter"><path d="M5 20v-5.5C5 10 8 7.5 12 7v3c-2 .5-3 1.800-3 4h3v6H5ZM18 20v-5.500c0-4.500 3-7 7-7.500v3c-2 .5-3 1.800-3 4h3v6h-7Z"/></svg>
           <blockquote>“{t.text}”</blockquote>
           <figcaption>
-            <span class="avatar" style={`background:${colors[i % colors.length]}`} aria-hidden="true">{initials(t.name)}</span>
+            {t.photo
+              ? <img class="avatar" src={t.photo} alt={`Foto de ${t.name}`} width="56" height="56" loading="lazy" />
+              : <span class="avatar" style={`background:${colors[i % colors.length]}`} aria-hidden="true">{initials(t.name)}</span>}
             <span class="who"><strong>{t.name}</strong><small>{t.role}</small></span>
             {whatsappUrl && (
               <a class="wa" href={whatsappUrl} target="_blank" rel="noopener noreferrer" aria-label="Escribir por WhatsApp">
@@ -33,9 +35,7 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) 
 
     <div class="controls">
       <button type="button" class="nav" data-prev aria-label="Comentarios anteriores">←</button>
-      <div class="dots">
-        {items.map((_, i) => <button type="button" class="dot" data-dot={i} aria-label={`Ver desde el comentario ${i + 1}`}></button>)}
-      </div>
+      <p class="count" aria-hidden="true"><b data-cur>01</b> / {String(items.length).padStart(2, '0')}</p>
       <button type="button" class="nav" data-next aria-label="Comentarios siguientes">→</button>
     </div>
   </div>
@@ -45,7 +45,7 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) 
   document.querySelectorAll<HTMLElement>('[data-carousel]').forEach((root) => {
     const grid = root.querySelector<HTMLElement>('[data-grid]')!;
     const cards = Array.from(grid.querySelectorAll<HTMLElement>('[data-card]'));
-    const dots = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-dot]'));
+    const cur = root.querySelector<HTMLElement>('[data-cur]');
     const total = cards.length;
     const perView = () => (matchMedia('(max-width: 40rem)').matches ? 1 : matchMedia('(max-width: 64rem)').matches ? 2 : 3);
     let start = 0;
@@ -60,7 +60,7 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) 
         c.hidden = !show;
         if (show) c.style.order = String((i - start + total) % total);
       });
-      dots.forEach((d, i) => d.setAttribute('aria-current', String(i === start)));
+      if (cur) cur.textContent = String(start + 1).padStart(2, '0');
     };
     const go = (i: number) => {
       start = (i + total) % total;
@@ -69,7 +69,6 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) 
     };
     root.querySelector('[data-prev]')?.addEventListener('click', () => go(start - 1));
     root.querySelector('[data-next]')?.addEventListener('click', () => go(start + 1));
-    dots.forEach((d) => d.addEventListener('click', () => go(Number(d.dataset.dot))));
     const run = () => { if (!reduce) timer = window.setInterval(() => go(start + 1), 7000); };
     const halt = () => window.clearInterval(timer);
     root.addEventListener('mouseenter', halt); root.addEventListener('mouseleave', run);
@@ -93,7 +92,7 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) 
   .quote-ico { color: #b9d6ff; }
   blockquote { margin: 0; color: var(--text); font-size: 1.02rem; line-height: 1.7; }
   figcaption { display: flex; align-items: center; gap: .85rem; border-top: 1px solid var(--line); padding-top: 1.1rem; }
-  .avatar { display: grid; place-items: center; width: 46px; height: 46px; color: #fff; font-weight: 800; font-size: .9rem; letter-spacing: .03em; flex: none; }
+  .avatar { display: grid; place-items: center; width: 56px; height: 56px; object-fit: cover; color: #fff; font-weight: 800; font-size: .9rem; letter-spacing: .03em; flex: none; }
   .who { display: grid; min-width: 0; }
   .who strong { color: var(--navy); }
   .who small { color: var(--muted); }
@@ -103,9 +102,8 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) 
   .controls { display: flex; align-items: center; justify-content: center; gap: 1rem; }
   .nav { width: 44px; height: 44px; border: 1px solid #c3d2de; background: var(--white); color: var(--navy); font-size: 1.1rem; }
   .nav:hover { border-color: var(--blue); color: var(--blue); }
-  .dots { display: flex; }
-  .dot { width: 26px; height: 22px; padding: 10px 2px; border: 0; background: #c3d2de; background-clip: content-box; }
-  .dot[aria-current='true'] { background: var(--blue); background-clip: content-box; padding: 9px 2px; }
+  .count { margin: 0; min-width: 5rem; text-align: center; color: var(--muted); font-size: .9rem; letter-spacing: .12em; }
+  .count b { color: var(--navy); }
 
   @media (max-width: 64rem) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 40rem) { .grid { grid-template-columns: 1fr; } }
