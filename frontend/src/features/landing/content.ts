@@ -2,11 +2,11 @@
 
 // Número de WhatsApp con código de país y sin "+" ni espacios (ej. Perú: 51987654321).
 // Mientras esté vacío, el botón flotante y los enlaces de WhatsApp no se muestran.
-export const WHATSAPP_NUMBER = '';
+export const WHATSAPP_NUMBER = '51923327532';
 export const WHATSAPP_MESSAGE = 'Hola, quiero más información sobre SABERO Academy.';
 
 // Correo público de contacto (se muestra en las páginas legales si se completa).
-export const CONTACT_EMAIL = '';
+export const CONTACT_EMAIL = 'gerencia@saberoconsulting.com';
 
 export const whatsappUrl = WHATSAPP_NUMBER
   ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`

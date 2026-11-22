@@ -1,7 +1,8 @@
 ---
 import BaseLayout from '../shared/presentation/BaseLayout.astro';
 import Icon from '../features/landing/Icon.astro';
-import { about, services, vision, testimonials, whatsappUrl } from '../features/landing/content';
+import Testimonials from '../features/landing/Testimonials.astro';
+import { about, services, vision, whatsappUrl } from '../features/landing/content';
 import { loadProgram } from '../features/learning/infrastructure/learning-api';
 
 const result = await loadProgram();
@@ -108,22 +109,7 @@ const price = program?.launch_price != null && program.currency
     <div class="shell stack">
       <p class="kicker">Comentarios</p>
       <h2 id="t-comentarios">Lo que dicen nuestros alumnos</h2>
-      {testimonials.length > 0 ? (
-        <div class="cards three">
-          {testimonials.map(t => (
-            <figure class="card quote">
-              <blockquote>“{t.text}”</blockquote>
-              <figcaption><strong>{t.name}</strong><span>{t.role}</span></figcaption>
-            </figure>
-          ))}
-        </div>
-      ) : (
-        <div class="card invite">
-          <h3>Tu opinión construye esta academia</h3>
-          <p>Estamos abriendo el campus. Si participas en la formación, tu experiencia aparecerá aquí.</p>
-          {whatsappUrl && <a class="button primary" href={whatsappUrl} target="_blank" rel="noopener noreferrer">Escríbenos por WhatsApp</a>}
-        </div>
-      )}
+      <Testimonials />
     </div>
   </section>
 
