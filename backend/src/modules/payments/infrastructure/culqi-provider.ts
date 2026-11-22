@@ -4,6 +4,7 @@ type Fetch = typeof fetch;
 
 interface CulqiCharge {
   id?: string;
+  capture?: boolean | null;
   amount?: number;
   currency_code?: string;
   outcome?: { type?: string; user_message?: string };
@@ -42,6 +43,8 @@ export class CulqiProvider implements PaymentProvider {
         currency_code: input.currency,
         email: input.email,
         source_id: input.token,
+        // Captura explícita: sin esto Culqi puede dejar el cargo solo autorizado y el dinero no se cobra.
+        capture: true,
         description: input.description.slice(0, 80),
         metadata: { payment_id: input.paymentId },
         antifraud_details: {
@@ -57,6 +60,8 @@ export class CulqiProvider implements PaymentProvider {
     if (response.status >= 500) throw new Error(`Culqi unavailable (${response.status})`);
 
     if (response.ok && body.outcome?.type === 'venta_exitosa' && body.id) {
+      // Defensa adicional: si el cargo quedó solo autorizado, se captura ahora; si no se logra, se avisa (queda en revisión).
+      if (body.capture !== true) await this.capture(body.id);
       return {
         status: 'paid',
         externalId: body.id,
@@ -68,5 +73,15 @@ export class CulqiProvider implements PaymentProvider {
       status: 'declined',
       reason: body.user_message ?? body.outcome?.user_message ?? 'El pago fue rechazado.',
     };
+  }
+
+  private async capture(chargeId: string): Promise<void> {
+    const response = await this.http(`${this.baseUrl}/charges/${encodeURIComponent(chargeId)}/capture`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.secretKey}`, 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(20_000),
+    });
+    const body = await response.json().catch(() => ({})) as CulqiCharge;
+    if (!response.ok || body.capture !== true) throw new Error(`Culqi capture failed (${response.status}) for ${chargeId}`);
   }
 }
