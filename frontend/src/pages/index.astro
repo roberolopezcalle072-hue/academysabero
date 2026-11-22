@@ -8,6 +8,7 @@ import { loadProgram } from '../features/learning/infrastructure/learning-api';
 const result = await loadProgram();
 const program = result.status === 'ok' ? result.value : null;
 Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
+const accents = ['#0b7bff', '#16a34a', '#6b3fd4', '#f08a24', '#0a8aa8', '#d4183d'];
 const price = program?.launch_price != null && program.currency
   ? new Intl.NumberFormat('es-PE', { style: 'currency', currency: program.currency }).format(program.launch_price)
   : null;
@@ -65,8 +66,8 @@ const price = program?.launch_price != null && program.currency
       <p class="kicker">Servicios</p>
       <h2 id="t-servicios">Todo lo que aprenderás a construir</h2>
       <div class="cards">
-        {services.map(s => (
-          <article class="card">
+        {services.map((s, i) => (
+          <article class="card" style={`--c:${accents[i % accents.length]}`}>
             <span class="icon"><Icon name={s.icon} /></span>
             <h3>{s.title}</h3>
             <p>{s.text}</p>
@@ -294,4 +295,11 @@ const price = program?.launch_price != null && program.currency
   /* Comentarios: contenedor más ancho para que las 5 tarjetas respiren */
   #comentarios { padding-block: clamp(3rem, 6.5vw, 5.5rem); }
   .shell.wide { width: min(100% - clamp(2.5rem, 5vw, 5rem), 96rem); }
+
+  /* Servicios con color propio */
+  #servicios .card { background: color-mix(in srgb, var(--c) 6%, #fff); border: 1px solid color-mix(in srgb, var(--c) 24%, #fff); }
+  #servicios .card:hover { border-color: var(--c); box-shadow: 0 16px 34px color-mix(in srgb, var(--c) 22%, transparent); transform: translateY(-3px); }
+  #servicios .icon { background: linear-gradient(145deg, var(--c), color-mix(in srgb, var(--c) 62%, #000)); color: #fff; box-shadow: 0 8px 18px color-mix(in srgb, var(--c) 35%, transparent); }
+  #servicios .card h3 { color: var(--navy); }
+  #servicios .card { transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease; }
 </style>
