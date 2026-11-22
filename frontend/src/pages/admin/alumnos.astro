@@ -1,0 +1,113 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import { readStudents, resetStudentPassword } from '../../features/access-admin/infrastructure/admin-api';
+import { siteUrl } from '../../shared/config/server';
+
+const token = Astro.locals.accessToken;
+if (!token) return Astro.redirect('/ingresar', 303);
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+
+const q = (Astro.url.searchParams.get('q') ?? '').slice(0, 120);
+const pageParam = Astro.url.searchParams.get('page') ?? '1';
+const page = /^[1-9]\d{0,5}$/.test(pageParam) ? Number(pageParam) : 1;
+const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+
+let generated: { name: string; email: string; password: string } | null = null;
+let message = '';
+
+if (Astro.request.method === 'POST') {
+  if (Astro.request.headers.get('origin') !== siteUrl().origin) return new Response(null, { status: 403 });
+  const form = await Astro.request.formData();
+  const id = String(form.get('id') ?? '');
+  if (UUID.test(id)) {
+    try {
+      const response = await resetStudentPassword(token, id);
+      if (response.ok) {
+        const data = await response.json();
+        generated = { name: String(form.get('name') ?? ''), email: String(form.get('email') ?? ''), password: String(data.password) };
+      } else {
+        Astro.response.status = response.status === 404 ? 404 : 503;
+        message = response.status === 404 ? 'No se encontró ese alumno.' : 'No se pudo restablecer la contraseña. Inténtalo de nuevo.';
+      }
+    } catch {
+      Astro.response.status = 503;
+      message = 'El servicio de administración no está disponible.';
+    }
+  }
+}
+
+const data = await readStudents(token, q, page);
+if (!data && Astro.response.status === 200) Astro.response.status = 503;
+const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(iso));
+const self = `/admin/alumnos?q=${encodeURIComponent(q)}&page=${page}`;
+---
+<BaseLayout title="Alumnos y contraseñas" privatePage>
+  <section class="shell page stack">
+    <div class="stack compact">
+      <p class="kicker">Administración</p>
+      <h1 class="panel-title">Alumnos y contraseñas</h1>
+      <a href="/admin">← Administración de acceso</a>
+    </div>
+
+    {message && <p class="notice" role="status">{message}</p>}
+    {generated && (
+      <div class="issued" role="status">
+        <p><strong>Contraseña restablecida para {generated.name || generated.email}</strong></p>
+        <p class="hint">Se muestra una sola vez. Compártela por un canal privado (por ejemplo WhatsApp) y pídele al alumno que la cambie en <em>Mi perfil</em>. Sus sesiones abiertas se cerraron.</p>
+        <label for="newpass">Nueva contraseña temporal</label>
+        <input id="newpass" value={generated.password} readonly onclick="this.select()" />
+        <p class="hint">Correo: {generated.email}</p>
+      </div>
+    )}
+
+    <form action="/admin/alumnos" method="get" class="search">
+      <label class="visually-hidden" for="q">Buscar alumno</label>
+      <input id="q" name="q" value={q} maxlength="120" placeholder="Buscar por nombre o correo" />
+      <button class="button primary">Buscar</button>
+    </form>
+
+    {data === null && <p class="notice" role="status">No se pudo cargar la lista de alumnos.</p>}
+    {data && data.students.length === 0 && <p class="notice" role="status">No hay alumnos que coincidan.</p>}
+
+    <ul class="list">
+      {data?.students.map((s) => (
+        <li class="row">
+          <div class="who">
+            <strong>{s.full_name}</strong>
+            <span>{s.google_email}</span>
+            <small>Registrado el {fmt(s.registered_at)} · {s.access_active ? 'Acceso activo' : 'Acceso desactivado'}</small>
+          </div>
+          <form action={self} method="post" onsubmit="return confirm('¿Restablecer la contraseña de este alumno? Se cerrarán sus sesiones abiertas.')">
+            <input type="hidden" name="id" value={s.user_id} />
+            <input type="hidden" name="name" value={s.full_name} />
+            <input type="hidden" name="email" value={s.google_email} />
+            <button class="button outline">Restablecer contraseña</button>
+          </form>
+        </li>
+      ))}
+    </ul>
+
+    {data && (page > 1 || data.hasNext) && (
+      <nav class="pager" aria-label="Paginación">
+        {page > 1 && <a href={`/admin/alumnos?q=${encodeURIComponent(q)}&page=${page - 1}`}>Anterior</a>}
+        {data.hasNext && <a href={`/admin/alumnos?q=${encodeURIComponent(q)}&page=${page + 1}`}>Siguiente</a>}
+      </nav>
+    )}
+  </section>
+</BaseLayout>
+
+<style>
+  .search { display: flex; gap: .6rem; width: 100%; max-width: 40rem; }
+  .search input { flex: 1; min-width: 0; }
+  .list { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: .75rem; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; background: var(--white); border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1.1rem; }
+  .who { display: grid; gap: .1rem; min-width: 0; }
+  .who span { color: var(--muted); }
+  .who small { color: var(--muted); }
+  .row form { margin: 0; }
+  .issued { width: 100%; max-width: 40rem; display: grid; gap: .5rem; padding: 1rem 1.2rem; border: 1px solid #1f9a5b; background: #effaf2; border-radius: 14px; }
+  .issued input { font-weight: 700; letter-spacing: .04em; }
+  .hint { color: var(--muted); font-size: .88rem; }
+  .pager { display: flex; gap: 1rem; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+</style>

@@ -196,3 +196,4 @@ body { overflow-x: clip; }
 .brand .logo-chip img { height: 38px; }
 .logo-chip.foot img { height: 34px; }
 @media (max-width: 24rem) { .brand .logo-chip { padding: .25rem .65rem; } .brand .logo-chip img { height: 32px; } }
+.stack { grid-template-columns: minmax(0, 1fr); }

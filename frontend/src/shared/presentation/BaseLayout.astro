@@ -81,7 +81,8 @@ const jsonLd = JSON.stringify({
           {privatePage ? (
             <>
               <div class="nav-links">
-                <a class="nav-link" href="/cuenta" aria-current={Astro.url.pathname.startsWith('/cuenta') ? 'page' : undefined}>Mi cuenta</a>
+                <a class="nav-link" href="/cuenta" aria-current={Astro.url.pathname === '/cuenta' ? 'page' : undefined}>Mi cuenta</a>
+                <a class="nav-link" href="/cuenta/perfil" aria-current={Astro.url.pathname === '/cuenta/perfil' ? 'page' : undefined}>Mi perfil</a>
                 {member && <a class="nav-link" href="/campus" aria-current={Astro.url.pathname.startsWith('/campus') ? 'page' : undefined}>Campus</a>}
                 {member?.role === 'admin' && <a class="nav-link" href="/admin" aria-current={Astro.url.pathname.startsWith('/admin') ? 'page' : undefined}>Administración</a>}
                 <form method="post" action="/auth/salir"><button class="button outline">Cerrar sesión</button></form>
@@ -90,6 +91,7 @@ const jsonLd = JSON.stringify({
                 <summary aria-label="Abrir menú"><span class="lines"></span></summary>
                 <div class="drawer">
                   <a href="/cuenta">Mi cuenta</a>
+                  <a href="/cuenta/perfil">Mi perfil</a>
                   {member && <a href="/campus">Campus</a>}
                   {member?.role === 'admin' && <a href="/admin">Administración</a>}
                   <form method="post" action="/auth/salir"><button class="button outline">Cerrar sesión</button></form>

@@ -1,6 +1,7 @@
 import {
   BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, Header, Headers,
-  Post, Query, ServiceUnavailableException, UnauthorizedException,
+  HttpCode, NotFoundException, Param, ParseUUIDPipe, Post, Query, ServiceUnavailableException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ResolveAccess } from '../../access/application/resolve-access';
 import { bearerToken } from '../../access/presentation/bearer-token';
@@ -39,6 +40,32 @@ export class AccessAdminController {
       throw new BadRequestException();
     }
     return this.admin.assign(token, normalizeEmail(email), course, requireCode).catch(providerError);
+  }
+
+  @Get('students')
+  @Header('Cache-Control', 'private, no-store')
+  async students(
+    @Headers('authorization') authorization: string | undefined,
+    @Query('q') q = '', @Query('page') page = '1',
+  ) {
+    const token = await this.requireAdmin(authorization);
+    if (!/^[1-9]\d{0,5}$/.test(page) || typeof q !== 'string' || q.length > 120) throw new BadRequestException();
+    return this.admin.students(token, q, Number(page)).catch(providerError);
+  }
+
+  @Post('students/:id/password')
+  @HttpCode(200)
+  @Header('Cache-Control', 'private, no-store')
+  async resetPassword(
+    @Headers('authorization') authorization: string | undefined,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const token = await this.requireAdmin(authorization);
+    return this.admin.resetPassword(token, id).catch((error: unknown) => {
+      const code = typeof error === 'object' && error !== null && 'code' in error ? error.code : null;
+      if (code === '23503') throw new NotFoundException();
+      return providerError(error);
+    });
   }
 
   private async requireAdmin(authorization?: string) {

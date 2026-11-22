@@ -27,3 +27,18 @@ export function submitAccessChange(token: string, form: FormData) {
   }
   return Promise.resolve(new Response(null, { status: 400 }));
 }
+
+export interface StudentRow { user_id: string; full_name: string; google_email: string; access_active: boolean; registered_at: string }
+
+export async function readStudents(token: string, query: string, page: number) {
+  try {
+    const response = await apiRequest(`/admin/access/students?q=${encodeURIComponent(query)}&page=${page}`, token);
+    return response.ok ? await response.json() as { students: StudentRow[]; hasNext: boolean } : null;
+  } catch {
+    return null;
+  }
+}
+
+export function resetStudentPassword(token: string, id: string) {
+  return apiRequest(`/admin/access/students/${id}/password`, token, {});
+}
