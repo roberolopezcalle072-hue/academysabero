@@ -1,36 +1,37 @@
 ---
-import { testimonials, whatsappUrl } from './content';
-const items = testimonials.slice(0, 8);
+import { testimonials } from './content';
+// Mientras no haya comentarios reales, el carrusel muestra 8 espacios reservados (sin textos inventados).
+const real = testimonials.slice(0, 8);
+const items = real.length > 0 ? real.map((t) => ({ ...t, placeholder: false })) : Array.from({ length: 8 }, () => ({ name: '', role: '', text: '', placeholder: true }));
 ---
-{items.length > 0 ? (
-  <div class="carousel" data-carousel aria-roledescription="carrusel" aria-label="Comentarios de alumnos">
-    <div class="track" data-track tabindex="0">
-      {items.map((t, i) => (
-        <figure class="slide" aria-roledescription="diapositiva" aria-label={`${i + 1} de ${items.length}`}>
-          <span class="mark" aria-hidden="true">“</span>
+<div class="carousel" data-carousel aria-roledescription="carrusel" aria-label="Comentarios de alumnos">
+  <div class="track" data-track tabindex="0">
+    {items.map((t, i) => (
+      <figure class={`slide${t.placeholder ? ' ghost' : ''}`} aria-roledescription="diapositiva" aria-label={`${i + 1} de ${items.length}`}>
+        <span class="mark" aria-hidden="true">“</span>
+        {t.placeholder ? (
+          <div class="lines" aria-hidden="true"><i></i><i></i><i></i><i class="short"></i></div>
+        ) : (
           <blockquote>{t.text}</blockquote>
-          <figcaption>
-            <span class="avatar" aria-hidden="true">{t.name.trim().charAt(0).toUpperCase()}</span>
-            <span><strong>{t.name}</strong><small>{t.role}</small></span>
-          </figcaption>
-        </figure>
-      ))}
-    </div>
-    <div class="controls">
-      <button type="button" class="nav" data-prev aria-label="Comentario anterior">‹</button>
-      <div class="dots" data-dots>
-        {items.map((_, i) => <button type="button" class="dot" data-dot={i} aria-label={`Ir al comentario ${i + 1}`}></button>)}
-      </div>
-      <button type="button" class="nav" data-next aria-label="Comentario siguiente">›</button>
-    </div>
+        )}
+        <figcaption>
+          <span class="avatar" aria-hidden="true">{t.placeholder ? '' : t.name.trim().charAt(0).toUpperCase()}</span>
+          <span>
+            <strong>{t.placeholder ? 'Próximamente' : t.name}</strong>
+            <small>{t.placeholder ? 'Comentario de un alumno' : t.role}</small>
+          </span>
+        </figcaption>
+      </figure>
+    ))}
   </div>
-) : (
-  <div class="invite">
-    <h3>Tu opinión construye esta academia</h3>
-    <p>Estamos abriendo el campus. Si participas en la formación, tu experiencia aparecerá aquí.</p>
-    {whatsappUrl && <a class="button primary" href={whatsappUrl} target="_blank" rel="noopener noreferrer">Escríbenos por WhatsApp</a>}
+  <div class="controls">
+    <button type="button" class="nav" data-prev aria-label="Comentario anterior">‹</button>
+    <div class="dots" data-dots>
+      {items.map((_, i) => <button type="button" class="dot" data-dot={i} aria-label={`Ir al comentario ${i + 1}`}></button>)}
+    </div>
+    <button type="button" class="nav" data-next aria-label="Comentario siguiente">›</button>
   </div>
-)}
+</div>
 
 <script>
   document.querySelectorAll<HTMLElement>('[data-carousel]').forEach((root) => {
@@ -79,6 +80,11 @@ const items = testimonials.slice(0, 8);
   .dots { display: flex; gap: .5rem; }
   .dot { width: 32px; height: 22px; padding: 10px 0; border-radius: 0; border: 0; background: #b9c8d4; background-clip: content-box; }
   .dot[aria-current="true"] { background: var(--blue); background-clip: content-box; padding: 9px 0; }
+  .lines { display: grid; gap: .65rem; }
+  .lines i { display: block; height: 1px; background: #b9c8d4; }
+  .lines i.short { width: 55%; }
+  .ghost .avatar { background: transparent; border: 1px solid var(--cyan); }
+  .ghost strong { letter-spacing: .12em; text-transform: uppercase; font-size: .75rem; color: var(--link); }
   .invite { background: var(--white); border: 1px solid var(--line); border-radius: 0; padding: 1.75rem; display: grid; gap: .75rem; justify-items: start; max-width: 44rem; }
   @media (max-width: 64rem) { .slide { flex-basis: calc((100% - 1.25rem) / 2); } }
   @media (max-width: 40rem) { .slide { flex-basis: 100%; } }
