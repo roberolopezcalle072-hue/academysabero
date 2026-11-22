@@ -72,16 +72,11 @@ const jsonLd = JSON.stringify({
     <a class="skip" href="#contenido">Ir al contenido</a>
     <header class={`site-header${dark ? ' dark' : ''}`}>
       <div class="shell header-content">
-        {dark ? (
-          <a class="brand" href="/" aria-label="SABERO ACADEMY">
-            <svg class="cap" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#8ec5ff" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M2.5 9 12 4l9.5 5L12 14z" /><path d="M6.5 11.3V16c0 1.4 2.4 2.8 5.5 2.8s5.500-1.400 5.500-2.800v-4.700" /><path d="M21.500 9v6" /></svg>
-            <span class="name"><b>SABERO</b><i>ACADEMY</i></span>
-            <span class="sep" aria-hidden="true"></span>
-            <span class="tag">Formación práctica en<br />Tecnología e Inteligencia Artificial</span>
-          </a>
-        ) : (
-          <a class="wordmark" href="/" aria-label="SABERO ACADEMY"><img src="/logos/logoapp.webp" alt="SABERO ACADEMY" width="180" height="60" style="display:block;height:42px;width:auto" /></a>
-        )}
+        <a class={dark ? 'brand' : 'wordmark'} href="/" aria-label="SABERO ACADEMY">
+          <span class="logo-chip"><img src="/logos/logoapp.webp" alt="SABERO ACADEMY" width="180" height="60" /></span>
+          {dark && <span class="sep" aria-hidden="true"></span>}
+          {dark && <span class="tag">Formación práctica en<br />Tecnología e Inteligencia Artificial</span>}
+        </a>
         <nav aria-label="Navegación principal" class="main-nav">
           {privatePage ? (
             <>
@@ -143,7 +138,7 @@ const jsonLd = JSON.stringify({
       )}
       <div class="footer-bar">
         <div class="shell footer-bottom">
-          <div class="brand-line"><span class="brand-mark">SABERO <b>ACADEMY</b></span><span>© {new Date().getFullYear()} SABERO Consulting. Todos los derechos reservados.</span></div>
+          <div class="brand-line"><span class="logo-chip foot"><img src="/logos/logoapp.webp" alt="SABERO ACADEMY" width="180" height="60" /></span><span>© {new Date().getFullYear()} SABERO Consulting. Todos los derechos reservados.</span></div>
           <div class="contact-line">
             {CONTACT_EMAIL && <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>}
             {whatsappUrl && <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">WhatsApp</a>}

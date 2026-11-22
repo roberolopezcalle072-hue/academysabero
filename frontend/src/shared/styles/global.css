@@ -188,3 +188,11 @@ body { overflow-x: clip; }
 .dk.campus progress { accent-color: #2f95ff; }
 .dk.campus img { height: auto; aspect-ratio: 16 / 9; border-radius: 12px; object-fit: cover; }
 .dk.campus .agenda > section, .dk.campus .notice, .dk.campus details, .dk.campus .registration { border-radius: 16px; }
+
+/* ===== Logo original SIEMPRE (no modificar el archivo del logo) ===== */
+.logo-chip { display: inline-flex; align-items: center; line-height: 0; }
+.logo-chip img { display: block; height: 42px; width: auto; }
+.brand .logo-chip, .logo-chip.foot { background: #fff; border-radius: 14px; padding: .3rem .85rem; box-shadow: 0 6px 18px rgb(0 0 0 / .25); }
+.brand .logo-chip img { height: 38px; }
+.logo-chip.foot img { height: 34px; }
+@media (max-width: 24rem) { .brand .logo-chip { padding: .25rem .65rem; } .brand .logo-chip img { height: 32px; } }
