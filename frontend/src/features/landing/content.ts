@@ -58,11 +58,11 @@ export const testimonials: { name: string; role: string; text: string; photo?: s
   { sample: true, photo: '/images/alumno-ana.webp', name: 'Lucía Fernández', role: 'Dueña de tienda online', text: 'Mi agente ya responde por WhatsApp mientras duermo. Antes perdía clientes por tardar en contestar.' },
   { sample: true, photo: '/images/alumno-carlos.webp', name: 'Carlos Mendoza', role: 'Jefe comercial', text: 'El seguimiento automático nos devolvió ventas que dábamos por perdidas. Y lo configuramos en pocas semanas.' },
   { sample: true, photo: '/images/alumno-diego.webp', name: 'Javier Salazar', role: 'Consultor independiente', text: 'Armé mi mini CRM paso a paso y por fin tengo todos mis clientes ordenados en un solo lugar.' },
-  { sample: true, name: 'Diego Paredes', role: 'Desarrollador freelance', text: 'Las sesiones en vivo resuelven las dudas al momento. Se nota que el contenido es práctico y está bien probado.' },
-  { sample: true, name: 'Valeria Ríos', role: 'Directora de marketing', text: 'Conectar Meta con el agente nos ahorró horas diarias de atender mensajes repetidos.' },
-  { sample: true, name: 'Jorge Castillo', role: 'Emprendedor', text: 'Lancé mi web y la conecté con mi agente. Ahora los interesados llegan y son atendidos de inmediato.' },
-  { sample: true, name: 'Mariana Torres', role: 'Gerente de operaciones', text: 'Cada módulo deja algo listo para usar. En una semana ya estábamos probando el agente con clientes reales.' },
-  { sample: true, name: 'Renato Vargas', role: 'Dueño de negocio local', text: 'No tenía experiencia técnica y aun así pude montar todo. El acompañamiento marca la diferencia.' },
+  { sample: true, photo: '/images/alumno-diego.svg', name: 'Diego Paredes', role: 'Desarrollador freelance', text: 'Las sesiones en vivo resuelven las dudas al momento. Se nota que el contenido es práctico y está bien probado.' },
+  { sample: true, photo: '/images/alumno-valeria.svg', name: 'Valeria Ríos', role: 'Directora de marketing', text: 'Conectar Meta con el agente nos ahorró horas diarias de atender mensajes repetidos.' },
+  { sample: true, photo: '/images/alumno-jorge.svg', name: 'Jorge Castillo', role: 'Emprendedor', text: 'Lancé mi web y la conecté con mi agente. Ahora los interesados llegan y son atendidos de inmediato.' },
+  { sample: true, photo: '/images/alumno-mariana.svg', name: 'Mariana Torres', role: 'Gerente de operaciones', text: 'Cada módulo deja algo listo para usar. En una semana ya estábamos probando el agente con clientes reales.' },
+  { sample: true, photo: '/images/alumno-renato.svg', name: 'Renato Vargas', role: 'Dueño de negocio local', text: 'No tenía experiencia técnica y aun así pude montar todo. El acompañamiento marca la diferencia.' },
 ];
 
 // Pie de página profesional por columnas.
