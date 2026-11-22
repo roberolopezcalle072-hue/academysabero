@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import WhatsAppButton from '../../features/landing/WhatsAppButton.astro';
+import { footerColumns, CONTACT_EMAIL, whatsappUrl } from '../../features/landing/content';
 
 interface Props { title: string; privatePage?: boolean; description?: string }
 const { title, privatePage = false, description: pageDescription } = Astro.props;
@@ -94,7 +95,28 @@ const jsonLd = JSON.stringify({
     </header>
     <main id="contenido" tabindex="-1"><slot /></main>
     <footer class="site-footer">
-      <div class="shell footer-content"><strong>SABERO Consulting</strong><span>Academia privada de formación</span><nav aria-label="Legal" class="legal"><a href="/privacidad">Privacidad</a><a href="/terminos">Términos</a></nav></div>
+      {!privatePage && (
+        <div class="shell footer-columns">
+          {footerColumns.map(col => (
+            <nav aria-label={col.title}>
+              <h2>{col.title}</h2>
+              <ul>
+                {col.links.map(l => <li><a href={l.href}>{l.label}</a></li>)}
+              </ul>
+            </nav>
+          ))}
+        </div>
+      )}
+      <div class="footer-bar">
+        <div class="shell footer-bottom">
+          <div class="brand-line"><span class="brand-mark">SABERO <b>ACADEMY</b></span><span>© {new Date().getFullYear()} SABERO Consulting. Todos los derechos reservados.</span></div>
+          <div class="contact-line">
+            {CONTACT_EMAIL && <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>}
+            {whatsappUrl && <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
+            <span class="lang">Español</span>
+          </div>
+        </div>
+      </div>
     </footer>
     {!privatePage && <WhatsAppButton />}
   </body>

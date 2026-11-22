@@ -2,7 +2,7 @@
 import BaseLayout from '../shared/presentation/BaseLayout.astro';
 import Icon from '../features/landing/Icon.astro';
 import Testimonials from '../features/landing/Testimonials.astro';
-import { about, services, vision, whatsappUrl } from '../features/landing/content';
+import { hero, about, services, vision, whatsappUrl } from '../features/landing/content';
 import { loadProgram } from '../features/learning/infrastructure/learning-api';
 
 const result = await loadProgram();
@@ -12,13 +12,13 @@ const price = program?.launch_price != null && program.currency
   ? new Intl.NumberFormat('es-PE', { style: 'currency', currency: program.currency }).format(program.launch_price)
   : null;
 ---
-<BaseLayout title="Formación profesional" description="SABERO Academy: campus privado de formación de SABERO Consulting con cursos, sesiones en vivo, recursos y acompañamiento personalizado.">
+<BaseLayout title="Formación profesional" description="SABERO Academy: aprende a crear un agente de IA que automatiza ventas, seguimientos, WhatsApp, Meta y un mini CRM, además de crear webs. Campus privado con sesiones en vivo.">
   <section class="hero">
     <div class="shell hero-content">
       <div class="stack hero-copy">
-        <p class="badge">Formación privada · SABERO Consulting</p>
-        <h1>{program?.title ?? 'Aprende con método. Crece con acompañamiento.'}</h1>
-        <p class="intro">{program?.introduction ?? 'SABERO Academy es tu campus privado: cursos estructurados, sesiones en vivo y un equipo que te acompaña de principio a fin.'}</p>
+        <p class="badge">{hero.badge}</p>
+        <h1>{program?.title ?? hero.title}</h1>
+        <p class="intro">{program?.introduction ?? hero.intro}</p>
         <div class="hero-actions">
           <a class="button primary" href="/ingresar">Acceder al campus <span aria-hidden="true">→</span></a>
           <a class="button ghost" href="#servicios">Ver servicios</a>
@@ -71,7 +71,7 @@ const price = program?.launch_price != null && program.currency
   <section id="servicios" class="band alt" aria-labelledby="t-servicios">
     <div class="shell stack">
       <p class="kicker">Servicios</p>
-      <h2 id="t-servicios">Todo lo que necesitas para formarte</h2>
+      <h2 id="t-servicios">Todo lo que aprenderás a construir</h2>
       <div class="cards">
         {services.map(s => (
           <article class="card">
@@ -130,10 +130,10 @@ const price = program?.launch_price != null && program.currency
     </div>
   </section>
 
-  <section class="band cta" aria-labelledby="t-cta">
+  <section id="contacto" class="band cta" aria-labelledby="t-cta">
     <div class="shell stack centered">
       <h2 id="t-cta">¿Listo para empezar?</h2>
-      <p class="lead">Ingresa al campus con tu cuenta de Google autorizada o escríbenos para más información.</p>
+      <p class="lead">Ingresa al campus con tu cuenta de Google autorizada o escríbenos para resolver tus dudas.</p>
       <div class="hero-actions">
         <a class="button primary" href="/ingresar">Acceder al campus <span aria-hidden="true">→</span></a>
         {whatsappUrl && <a class="button ghost" href={whatsappUrl} target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>}
@@ -174,7 +174,7 @@ const price = program?.launch_price != null && program.currency
   .stats strong { font-size: 1.9rem; font-weight: 800; color: var(--navy); letter-spacing: -.02em; }
   .stats span { color: var(--muted); }
 
-  .cards { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem; margin-top: 1rem; }
+  .cards { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-top: 1rem; }
   .card { background: var(--white); border: 1px solid var(--line); padding: 1.75rem; display: grid; gap: .75rem; align-content: start; transition: border-color .25s ease, box-shadow .25s ease; }
   .card:hover { border-color: var(--blue); box-shadow: var(--shadow); }
   .icon { display: grid; place-items: center; width: 52px; height: 52px; background: #eaf3ff; color: var(--blue); }
