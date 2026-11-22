@@ -90,7 +90,7 @@ export function setupCheckout(form: HTMLFormElement, notify: (message: string, k
 
     const started = await post('/cuenta/pago/iniciar', {
       courseId: data.get('courseId'), fullName: data.get('fullName'), phone: data.get('phone'),
-      country: data.get('country'), notes: data.get('notes'), acceptTerms: data.get('acceptTerms') === 'on',
+      country: data.get('country') === '__otro' ? data.get('countryOther') : data.get('country'), notes: data.get('notes'), acceptTerms: data.get('acceptTerms') === 'on',
     }).catch(() => null);
 
     if (!started || !started.ok) {

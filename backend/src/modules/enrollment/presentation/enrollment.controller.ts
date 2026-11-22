@@ -22,6 +22,13 @@ export class EnrollmentController {
     return this.enrollment.catalog(token).catch(providerError);
   }
 
+  /** Precios públicos para la portada (no requiere sesión y no expone contenido). */
+  @Get('catalog/public')
+  @Header('Cache-Control', 'public, max-age=60')
+  async publicPrices() {
+    return this.enrollment.publicPrices().catch(providerError);
+  }
+
   @Get('enrollment-requests/mine')
   @Header('Cache-Control', 'private, no-store')
   async mine(@Headers('authorization') authorization?: string) {

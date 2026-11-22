@@ -1,0 +1,94 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import { loadComplaints, answerComplaint } from '../../features/access-admin/infrastructure/complaints-api';
+import { siteUrl } from '../../shared/config/server';
+
+const token = Astro.locals.accessToken;
+if (!token) return Astro.redirect('/ingresar', 303);
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const statusParam = Astro.url.searchParams.get('estado') ?? 'open';
+const status = ['open', 'answered', 'all'].includes(statusParam) ? statusParam : 'open';
+const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+let message = '';
+
+if (Astro.request.method === 'POST') {
+  if (Astro.request.headers.get('origin') !== siteUrl().origin) return new Response(null, { status: 403 });
+  const form = await Astro.request.formData();
+  const id = String(form.get('id') ?? '');
+  const text = String(form.get('response') ?? '').trim();
+  if (UUID.test(id) && text.length >= 5) {
+    const result = await answerComplaint(token, id, text).catch(() => null);
+    message = result?.ok ? 'Respuesta guardada.' : 'No se pudo guardar la respuesta.';
+  } else {
+    message = 'Escribe una respuesta de al menos 5 caracteres.';
+  }
+}
+
+const data = await loadComplaints(token, status, 1);
+const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date(iso));
+const tabs = [['open', 'Pendientes'], ['answered', 'Respondidos'], ['all', 'Todos']];
+---
+<BaseLayout title="Libro de Reclamaciones" privatePage>
+  <section class="shell page stack">
+    <div class="stack compact">
+      <p class="kicker">Administración</p>
+      <h1 class="panel-title">Libro de Reclamaciones</h1>
+      <a href="/admin">← Administración de acceso</a>
+    </div>
+    {message && <p class="notice" role="status">{message}</p>}
+    <nav class="tabs" aria-label="Estado">
+      {tabs.map(([key, label]) => <a href={`/admin/reclamos?estado=${key}`} aria-current={status === key ? 'page' : undefined}>{label}</a>)}
+    </nav>
+    {data === null && <p class="notice" role="status">No se pudo cargar la lista.</p>}
+    {data && data.complaints.length === 0 && <p class="notice" role="status">No hay reclamos en este estado.</p>}
+    <div class="list">
+      {data?.complaints.map((c) => (
+        <article class="item">
+          <header>
+            <div><h2>{c.code} · {c.kind === 'queja' ? 'Queja' : 'Reclamo'}</h2><p class="meta">{fmt(c.created_at)}</p></div>
+            <span class={`state ${c.status}`}>{c.status === 'open' ? 'Pendiente' : 'Respondido'}</span>
+          </header>
+          <dl>
+            <div><dt>Consumidor</dt><dd>{c.full_name} ({c.doc_type} {c.doc_number})</dd></div>
+            <div><dt>Contacto</dt><dd>{c.email} · {c.phone}</dd></div>
+            <div><dt>Domicilio</dt><dd>{c.address}</dd></div>
+            <div><dt>Servicio</dt><dd>{c.service}{c.amount_claimed ? ` · ${c.amount_claimed}` : ''}</dd></div>
+            {c.is_minor && <div><dt>Apoderado</dt><dd>{c.guardian_name}</dd></div>}
+          </dl>
+          <p><strong>Detalle:</strong> {c.detail}</p>
+          <p><strong>Pedido:</strong> {c.request}</p>
+          {c.status === 'open' ? (
+            <form method="post" action={`/admin/reclamos?estado=${status}`} class="answer">
+              <input type="hidden" name="id" value={c.id} />
+              <label for={`r-${c.id}`}>Respuesta al consumidor</label>
+              <textarea id={`r-${c.id}`} name="response" rows="3" minlength="5" maxlength="3000" required></textarea>
+              <button class="button primary">Guardar respuesta</button>
+              <p class="meta">Recuerda enviar la respuesta al correo del consumidor ({c.email}) dentro del plazo legal.</p>
+            </form>
+          ) : (
+            <p class="resp"><strong>Respuesta ({c.answered_at ? fmt(c.answered_at) : ''}):</strong> {c.response}</p>
+          )}
+        </article>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
+<style>
+  .tabs { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .tabs a { padding: .45rem 1rem; border: 1px solid var(--line); border-radius: 999px; color: var(--navy); text-decoration: none; font-weight: 600; font-size: .9rem; }
+  .tabs a[aria-current='page'] { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .list { width: 100%; display: grid; gap: 1rem; }
+  .item { background: var(--white); border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem 1.3rem; display: grid; gap: .7rem; }
+  .item header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+  .item h2 { font-size: 1.1rem; }
+  .meta { color: var(--muted); font-size: .85rem; }
+  .state { font-size: .75rem; font-weight: 700; padding: .25rem .7rem; border-radius: 999px; border: 1px solid var(--line); }
+  .state.open { background: #fff4de; color: #9a5b00; border-color: #f6d28b; }
+  .state.answered { background: #effaf2; color: #166534; border-color: #bfe6cb; }
+  dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .6rem 1.5rem; }
+  dt { color: var(--muted); font-size: .78rem; }
+  dd { margin: .1rem 0 0; font-weight: 600; font-size: .92rem; }
+  .answer { display: grid; gap: .5rem; }
+  textarea { font: inherit; border: 1px solid #b6c6d4; border-radius: 10px; padding: .6rem .75rem; resize: vertical; }
+  .resp { background: var(--light); border-radius: 12px; padding: .7rem .9rem; }
+</style>

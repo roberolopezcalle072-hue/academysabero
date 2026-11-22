@@ -2,7 +2,7 @@
 import BaseLayout from '../../shared/presentation/BaseLayout.astro';
 import PromoTimer from '../../features/enrollment/PromoTimer.astro';
 import { loadCatalog, loadPaymentsConfig } from '../../features/enrollment/infrastructure/enrollment-api';
-import { money } from '../../features/landing/promo';
+import { money, moneyIn } from '../../features/landing/promo';
 
 const token = Astro.locals.accessToken;
 if (!token) return Astro.redirect('/ingresar', 303);
@@ -31,7 +31,8 @@ const discount = (regular: number, offer: number) => Math.round((1 - offer / reg
             <h2>{c.name}</h2>
             <p class="desc">{c.description}</p>
             <PromoTimer />
-            <p class="price"><s>{money(c.price_regular, c.currency)}</s><strong>{money(c.price_offer, c.currency)}</strong><span>{c.currency}</span></p>
+            <p class="price"><s>{moneyIn(c.price_regular, c.currency)}</s><strong>{moneyIn(c.price_offer, c.currency)}</strong><span>{c.currency}</span></p>
+            {c.price_offer_pen !== null && c.price_regular_pen !== null && <p class="pen">Desde Perú: <b>{moneyIn(c.price_offer_pen, 'PEN')}</b> <s>{moneyIn(c.price_regular_pen, 'PEN')}</s></p>}
             {c.enrolled ? (
               <a class="dk-btn" href="/campus">Ir al curso</a>
             ) : c.request_status === 'pending' && !payments.enabled ? (
@@ -62,4 +63,7 @@ const discount = (regular: number, offer: number) => Math.round((1 - offer / reg
   .price s { color: #8aa0c6; font-size: 1.15rem; text-decoration-color: #e4313f; }
   .price strong { font-size: 2.8rem; font-weight: 800; letter-spacing: -.04em; line-height: 1; background: linear-gradient(180deg, #ffe27a, #ffb21c); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .price span { color: #ffd566; font-size: .85rem; font-weight: 800; }
+  .pen { color: #bcd0f5; font-size: .9rem; margin-top: -.4rem; }
+  .pen b { color: #ffd54a; }
+  .pen s { color: #7f93b3; margin-left: .3rem; }
 </style>

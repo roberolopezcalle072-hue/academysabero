@@ -5,8 +5,15 @@ import Testimonials from '../features/landing/Testimonials.astro';
 import { hero, about, services, vision, whatsappUrl } from '../features/landing/content';
 import { PROMO, discountPercent, money, remaining } from '../features/landing/promo';
 import { loadProgram } from '../features/learning/infrastructure/learning-api';
+import { loadPublicPrices } from '../features/enrollment/infrastructure/enrollment-api';
+import { moneyIn } from '../features/landing/promo';
 
-const result = await loadProgram();
+const [result, prices] = await Promise.all([loadProgram(), loadPublicPrices()]);
+const usdRegular = prices?.price_regular ?? PROMO.priceRegular;
+const usdOffer = prices?.price_offer ?? PROMO.priceOffer;
+const offPercent = Math.round((1 - usdOffer / usdRegular) * 100);
+const penOffer = prices?.price_offer_pen ?? null;
+const penRegular = prices?.price_regular_pen ?? null;
 const program = result.status === 'ok' ? result.value : null;
 Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
 const left = remaining();
@@ -56,14 +63,15 @@ const price = program?.launch_price != null && program.currency
       <div class="hx-offer">
         <div class="normal">
           <span>Precio normal</span>
-          <s>{money(PROMO.priceRegular)}</s>
+          <s>{moneyIn(usdRegular, 'USD')}</s>
         </div>
         <span class="vr" aria-hidden="true"></span>
         <div class="special">
           <span class="chipred">Oferta especial</span>
-          <div class="amount"><strong>{money(PROMO.priceOffer)}</strong><small>{PROMO.currency}</small></div>
+          <div class="amount"><strong>{moneyIn(usdOffer, 'USD')}</strong><small>USD</small></div>
+          {penOffer !== null && penRegular !== null && <p class="pen">Desde Perú: <b>{moneyIn(penOffer, 'PEN')}</b> <s>{moneyIn(penRegular, 'PEN')}</s></p>}
         </div>
-        <span class="off" aria-label={`${discountPercent}% de descuento`}><b>{discountPercent}%</b><small>DSCTO.</small></span>
+        <span class="off" aria-label={`${offPercent}% de descuento`}><b>{offPercent}%</b><small>DSCTO.</small></span>
         <span class="vr" aria-hidden="true"></span>
         <div class="timer" data-countdown>
           <span class="chipred clock"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Oferta válida solo por {PROMO.cycleDays} días</span>
@@ -490,4 +498,7 @@ const price = program?.launch_price != null && program.currency
     .boxes b { font-size: 1.6rem; }
     .cta-btn { width: 100%; }
   }
+  .hx-offer .pen { margin: .1rem 0 0; color: #bcd0f5; font-size: .82rem; }
+  .hx-offer .pen b { color: #ffd54a; font-size: .95rem; }
+  .hx-offer .pen s { color: #7f93b3; margin-left: .25rem; }
 </style>

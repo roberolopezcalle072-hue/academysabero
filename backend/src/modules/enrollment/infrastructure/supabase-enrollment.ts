@@ -8,6 +8,8 @@ export interface CatalogCourse {
   price_regular: number;
   price_offer: number;
   currency: string;
+  price_regular_pen: number | null;
+  price_offer_pen: number | null;
   enrolled: boolean;
   request_status: 'pending' | 'approved' | 'rejected' | null;
 }
@@ -31,6 +33,23 @@ export class SupabaseEnrollment {
       ...row,
       price_regular: Number(row.price_regular),
       price_offer: Number(row.price_offer),
+      price_regular_pen: row.price_regular_pen === null ? null : Number(row.price_regular_pen),
+      price_offer_pen: row.price_offer_pen === null ? null : Number(row.price_offer_pen),
+    }));
+  }
+
+  /** Precios de los cursos publicados, sin iniciar sesión (para la portada). */
+  async publicPrices() {
+    const { data, error } = await this.client().rpc('academy_public_prices');
+    if (error) throw error;
+    const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+    return (data ?? []).map((row: Record<string, unknown>) => ({
+      name: String(row.name),
+      price_regular: num(row.price_regular),
+      price_offer: num(row.price_offer),
+      currency: String(row.currency),
+      price_regular_pen: num(row.price_regular_pen),
+      price_offer_pen: num(row.price_offer_pen),
     }));
   }
 
@@ -81,7 +100,7 @@ export class SupabaseEnrollment {
     if (error) throw error;
   }
 
-  private client(accessToken: string) {
+  private client(accessToken?: string) {
     return createAcademyClient(this.url, this.key, accessToken);
   }
 }

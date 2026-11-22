@@ -30,3 +30,8 @@ export function remaining(now = Date.now()) {
 
 export const money = (value: number, currency = PROMO.currency) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
+
+/** Formato de moneda sin decimales: S/ 749 o $199. */
+export function moneyIn(value: number, currency: string) {
+  return new Intl.NumberFormat(currency === 'PEN' ? 'es-PE' : 'en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
+}

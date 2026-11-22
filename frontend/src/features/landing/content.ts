@@ -11,6 +11,14 @@ export const CONTACT_EMAIL = 'gerencia@saberoconsulting.com';
 // Política de reembolso: plazo en días calendario desde la activación del acceso. Cámbialo aquí.
 export const REFUND = { days: 7 };
 
+// Datos legales de la empresa (Perú). Se muestran en el pie y en los términos solo si están completos.
+export const COMPANY = {
+  legalName: '',   // Razón social, por ejemplo "SABERO CONSULTING S.A.C."
+  ruc: '',         // RUC de 11 dígitos
+  address: '',     // Domicilio fiscal
+  email: 'gerencia@saberoconsulting.com',
+};
+
 export const whatsappUrl = WHATSAPP_NUMBER
   ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`
   : null;
@@ -107,6 +115,7 @@ export const footerColumns: { title: string; links: FooterLink[] }[] = [
       { label: 'Política de privacidad', href: '/privacidad' },
       { label: 'Términos del servicio', href: '/terminos' },
       { label: 'Política de reembolso', href: '/reembolso' },
+      { label: 'Libro de Reclamaciones', href: '/libro-de-reclamaciones' },
       { label: 'Mapa del sitio', href: '/sitemap.xml' },
     ],
   },

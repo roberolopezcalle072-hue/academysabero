@@ -1,0 +1,95 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import { COMPANY } from '../../features/landing/content';
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const state = Astro.url.searchParams.get('estado');
+const messages = new Map([
+  ['datos', 'Revisa los datos del formulario: hay campos obligatorios sin completar o con un formato inválido.'],
+  ['limite', 'Ya registraste varios reclamos hoy con este correo. Inténtalo de nuevo mañana o escríbenos directamente.'],
+  ['servicio', 'No se pudo registrar tu reclamo en este momento. Inténtalo de nuevo en unos minutos.'],
+]);
+const message = state ? messages.get(state) : undefined;
+---
+<BaseLayout title="Libro de Reclamaciones" description="Libro de Reclamaciones virtual de SABERO Academy: registra un reclamo o una queja sobre nuestros servicios.">
+  <section class="shell page libro">
+    <header class="stack compact">
+      <p class="kicker">Libro de Reclamaciones</p>
+      <h1 class="panel-title">Hoja de Reclamación</h1>
+      {(COMPANY.legalName || COMPANY.ruc) && (
+        <p class="company">
+          {COMPANY.legalName && <b>{COMPANY.legalName}</b>} {COMPANY.ruc && <>· RUC {COMPANY.ruc}</>} {COMPANY.address && <>· {COMPANY.address}</>}
+        </p>
+      )}
+      <p class="intro"><strong>Reclamo:</strong> disconformidad con el producto o servicio contratado. <strong>Queja:</strong> malestar con la atención al cliente, sin relación con el servicio en sí.</p>
+    </header>
+
+    {message && <p class="notice" role="alert">{message}</p>}
+
+    <form class="form" action="/libro-de-reclamaciones/enviar" method="post">
+      <fieldset>
+        <legend>1. Identificación del consumidor</legend>
+        <div class="row">
+          <div><label for="fullName">Nombre completo</label><input id="fullName" name="fullName" maxlength="120" autocomplete="name" required /></div>
+        </div>
+        <div class="row two">
+          <div><label for="docType">Tipo de documento</label>
+            <select id="docType" name="docType" required><option>DNI</option><option>CE</option><option>PASAPORTE</option><option>RUC</option><option>OTRO</option></select></div>
+          <div><label for="docNumber">Número de documento</label><input id="docNumber" name="docNumber" maxlength="20" required /></div>
+        </div>
+        <div class="row"><div><label for="address">Domicilio</label><input id="address" name="address" maxlength="200" autocomplete="street-address" required /></div></div>
+        <div class="row two">
+          <div><label for="phone">Teléfono</label><input id="phone" name="phone" type="tel" maxlength="30" autocomplete="tel" required /></div>
+          <div><label for="email">Correo electrónico</label><input id="email" name="email" type="email" maxlength="254" autocomplete="email" required /></div>
+        </div>
+        <label class="check"><input type="checkbox" name="isMinor" id="isMinor" /><span>Soy menor de edad y presento este reclamo con mi padre, madre o apoderado.</span></label>
+        <div class="row" id="guardianRow" hidden><div><label for="guardian">Nombre del padre, madre o apoderado</label><input id="guardian" name="guardian" maxlength="120" /></div></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>2. Identificación del servicio contratado</legend>
+        <div class="row two">
+          <div><label for="service">Servicio o curso</label><input id="service" name="service" maxlength="200" value="SABERO Academy" required /></div>
+          <div><label for="amount">Monto reclamado <small>(opcional)</small></label><input id="amount" name="amount" maxlength="40" placeholder="S/ 0.00" /></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>3. Detalle de la reclamación y pedido del consumidor</legend>
+        <div class="row two">
+          <div><label for="kind">Tipo</label>
+            <select id="kind" name="kind" required><option value="reclamo">Reclamo</option><option value="queja">Queja</option></select></div>
+        </div>
+        <div class="row"><div><label for="detail">Detalle <small>(describe lo ocurrido)</small></label><textarea id="detail" name="detail" rows="5" minlength="10" maxlength="2000" required></textarea></div></div>
+        <div class="row"><div><label for="request">Pedido del consumidor <small>(qué solicitas)</small></label><textarea id="request" name="request" rows="3" minlength="5" maxlength="1000" required></textarea></div></div>
+      </fieldset>
+
+      <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+      <label class="check"><input type="checkbox" name="acceptTruth" required /><span>Declaro que la información consignada es verdadera. La formulación del reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el Indecopi.</span></label>
+      <button class="button primary">Enviar hoja de reclamación</button>
+    </form>
+  </section>
+</BaseLayout>
+<script>
+  const box = document.getElementById('isMinor') as HTMLInputElement | null;
+  const row = document.getElementById('guardianRow');
+  const guardian = document.getElementById('guardian') as HTMLInputElement | null;
+  box?.addEventListener('change', () => { if (row && guardian) { row.hidden = !box.checked; guardian.required = box.checked; } });
+</script>
+<style>
+  .libro { max-width: 52rem; display: grid; gap: 1.25rem; }
+  .intro { color: var(--muted); }
+  .company { color: var(--muted); font-size: .9rem; }
+  .form { display: grid; gap: 1.1rem; }
+  fieldset { border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.25rem 1.25rem; display: grid; gap: .8rem; margin: 0; background: var(--white); }
+  legend { font-weight: 800; color: var(--navy); padding-inline: .4rem; }
+  .row { display: grid; gap: .8rem; }
+  .row.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .row > div { display: grid; gap: .35rem; min-width: 0; }
+  label { font-weight: 600; font-size: .9rem; color: var(--navy); }
+  label small { font-weight: 400; color: var(--muted); }
+  textarea { font: inherit; border: 1px solid #b6c6d4; border-radius: 10px; padding: .6rem .75rem; resize: vertical; }
+  .check { display: flex; gap: .6rem; align-items: flex-start; font-weight: 400; color: var(--muted); }
+  .check input { margin-top: .25rem; min-height: 0; }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  @media (max-width: 40rem) { .row.two { grid-template-columns: minmax(0, 1fr); } }
+</style>

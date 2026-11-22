@@ -23,7 +23,7 @@ export const POST: APIRoute = async (context) => {
       courseId,
       fullName: String(form.get('fullName') ?? ''),
       phone: String(form.get('phone') ?? ''),
-      country: String(form.get('country') ?? ''),
+      country: String(form.get('country') === '__otro' ? form.get('countryOther') ?? '' : form.get('country') ?? ''),
       notes: String(form.get('notes') ?? ''),
       acceptTerms: true,
     });

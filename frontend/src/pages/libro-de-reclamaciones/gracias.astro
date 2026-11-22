@@ -1,0 +1,33 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import { CONTACT_EMAIL, COMPANY } from '../../features/landing/content';
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const code = (Astro.url.searchParams.get('codigo') ?? '').toUpperCase();
+if (!/^[RQ]-\d{4}-\d{6}$/.test(code)) return Astro.redirect('/libro-de-reclamaciones', 303);
+const kind = Astro.url.searchParams.get('tipo') === 'queja' ? 'queja' : 'reclamo';
+const date = new Intl.DateTimeFormat('es-PE', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date());
+---
+<BaseLayout title="Reclamo registrado" description="Tu hoja de reclamación fue registrada.">
+  <section class="shell page ok">
+    <div class="card">
+      <p class="kicker">Hoja de Reclamación registrada</p>
+      <h1>Tu {kind} fue registrado</h1>
+      <p class="codebox">Código: <strong>{code}</strong></p>
+      <p>Fecha y hora: {date} (hora de Lima).</p>
+      {(COMPANY.legalName || COMPANY.ruc) && <p>{COMPANY.legalName} {COMPANY.ruc && `· RUC ${COMPANY.ruc}`}</p>}
+      <p><strong>Guarda este código.</strong> Responderemos al correo que registraste dentro del plazo que establece la ley. Si necesitas algo más, escríbenos a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> indicando tu código.</p>
+      <div class="actions">
+        <button class="button primary" onclick="window.print()">Imprimir o guardar como PDF</button>
+        <a class="button outline" href="/">Volver al inicio</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+<style>
+  .ok { display: grid; justify-items: center; }
+  .card { width: min(100%, 40rem); display: grid; gap: .9rem; padding: clamp(1.5rem, 4vw, 2.5rem); background: var(--white); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 20px 44px rgb(7 27 53 / .08); }
+  .codebox { font-size: 1.15rem; background: var(--light); border: 1px dashed #9db3c7; border-radius: 12px; padding: .8rem 1rem; }
+  .codebox strong { font-size: 1.5rem; letter-spacing: .04em; color: var(--navy); }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  @media print { :global(.site-header), :global(.site-footer), .actions, :global(.wa-float) { display: none !important; } }
+</style>

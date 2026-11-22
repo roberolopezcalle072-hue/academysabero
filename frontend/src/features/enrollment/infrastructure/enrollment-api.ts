@@ -8,6 +8,8 @@ export interface CatalogCourse {
   price_regular: number;
   price_offer: number;
   currency: string;
+  price_regular_pen: number | null;
+  price_offer_pen: number | null;
   enrolled: boolean;
   request_status: 'pending' | 'approved' | 'rejected' | null;
 }
@@ -66,5 +68,22 @@ export async function loadPaymentsConfig(): Promise<PaymentsConfig> {
     return response.ok ? await response.json() : { enabled: false };
   } catch {
     return { enabled: false };
+  }
+}
+
+export interface PublicPrice {
+  name: string; price_regular: number | null; price_offer: number | null; currency: string;
+  price_regular_pen: number | null; price_offer_pen: number | null;
+}
+
+/** Precios públicos para la portada. Devuelve null si el backend no responde (se usan los valores de respaldo). */
+export async function loadPublicPrices(): Promise<PublicPrice | null> {
+  try {
+    const response = await apiRequest('/catalog/public');
+    if (!response.ok) return null;
+    const list = await response.json() as PublicPrice[];
+    return list[0] ?? null;
+  } catch {
+    return null;
   }
 }

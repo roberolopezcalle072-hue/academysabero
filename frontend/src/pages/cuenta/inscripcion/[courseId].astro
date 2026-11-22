@@ -2,7 +2,8 @@
 import BaseLayout from '../../../shared/presentation/BaseLayout.astro';
 import PromoTimer from '../../../features/enrollment/PromoTimer.astro';
 import { loadCatalog, loadPaymentsConfig } from '../../../features/enrollment/infrastructure/enrollment-api';
-import { money } from '../../../features/landing/promo';
+import { money, moneyIn } from '../../../features/landing/promo';
+const COUNTRIES = ['Perú', 'Argentina', 'Bolivia', 'Brasil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Ecuador', 'El Salvador', 'España', 'Estados Unidos', 'Guatemala', 'Honduras', 'México', 'Nicaragua', 'Panamá', 'Paraguay', 'Puerto Rico', 'República Dominicana', 'Uruguay', 'Venezuela'];
 
 const token = Astro.locals.accessToken;
 if (!token) return Astro.redirect('/ingresar', 303);
@@ -21,6 +22,8 @@ const providerName = payments.provider ? (providerNames[payments.provider] ?? ''
 const state = Astro.url.searchParams.get('estado');
 const message = state === 'datos' ? 'Revisa los datos del formulario.' : state === 'terminos' ? 'Debes aceptar los términos para continuar.' : state === 'servicio' ? 'No se pudo enviar tu solicitud. Inténtalo de nuevo.' : '';
 const discount = Math.round((1 - course.price_offer / course.price_regular) * 100);
+const hasPen = course.price_offer_pen !== null && course.price_regular_pen !== null;
+const prices = JSON.stringify({ usd: [course.price_regular, course.price_offer, course.currency], pen: hasPen ? [course.price_regular_pen, course.price_offer_pen, 'PEN'] : null });
 ---
 <BaseLayout title={`Inscripción · ${course.name}`} privatePage dark>
   <div class="dk">
@@ -29,8 +32,9 @@ const discount = Math.round((1 - course.price_offer / course.price_regular) * 10
       <p class="kicker">Inscripción</p>
       <h1>{course.name}</h1>
       <img src={course.image_path} alt="" width="1500" height="844" />
-      <span class="tag">-{discount}% oferta de lanzamiento</span>
-      <p class="price"><s>{money(course.price_regular, course.currency)}</s><strong>{money(course.price_offer, course.currency)}</strong><span>{course.currency}</span></p>
+      <span class="tag">-<span id="off">{discount}</span>% oferta de lanzamiento</span>
+      <p class="price"><s id="p-reg">{moneyIn(course.price_regular, course.currency)}</s><strong id="p-off">{moneyIn(course.price_offer, course.currency)}</strong><span id="p-cur">{course.currency}</span></p>
+      {hasPen && <p class="pen-note" id="pen-note">En Perú pagas en soles: <b>{moneyIn(course.price_offer_pen!, 'PEN')}</b></p>}
       <PromoTimer label="Esta oferta termina en" />
       <div class="need dk-card">
         <h2>Para obtener algo funcional necesitarás</h2>
@@ -45,7 +49,7 @@ const discount = Math.round((1 - course.price_offer / course.price_regular) * 10
       </div>
     </div>
 
-    <form class="form dk-card" action="/cuenta/solicitar" method="post" data-pay={payments.enabled ? '1' : undefined}>
+    <form class="form dk-card" action="/cuenta/solicitar" method="post" data-pay={payments.enabled ? '1' : undefined} data-prices={prices}>
       <h2>Tus datos</h2>
       {message && <p class="notice" role="status">{message}</p>}
       <input type="hidden" name="courseId" value={course.id} />
@@ -54,7 +58,12 @@ const discount = Math.round((1 - course.price_offer / course.price_regular) * 10
       <label for="phone">WhatsApp o teléfono</label>
       <input id="phone" name="phone" type="tel" maxlength="30" autocomplete="tel" placeholder="+51 999 999 999" required />
       <label for="country">País</label>
-      <input id="country" name="country" maxlength="60" autocomplete="country-name" required />
+      <select id="country" name="country" autocomplete="country-name" required>
+        <option value="" disabled selected>Elige tu país</option>
+        {COUNTRIES.map((c) => <option value={c}>{c}</option>)}
+        <option value="__otro">Otro país…</option>
+      </select>
+      <input id="countryOther" name="countryOther" maxlength="60" placeholder="Escribe tu país" hidden />
       <label for="notes">¿Algo que quieras contarnos? <small>(opcional)</small></label>
       <textarea id="notes" name="notes" rows="3" maxlength="1000"></textarea>
 
@@ -62,7 +71,7 @@ const discount = Math.round((1 - course.price_offer / course.price_regular) * 10
         <span>He leído y acepto los <a href="/terminos-compra" target="_blank" rel="noopener">términos y condiciones de compra</a> y la <a href="/reembolso" target="_blank" rel="noopener">política de reembolso</a>, incluido que debo adquirir por mi cuenta VPS, dominio, plan de suscripción, códigos y DeepSeek.</span>
       </label>
       <p class="notice" id="pay-msg" role="status" hidden></p>
-      <button class="dk-btn amber wide">{payments.enabled ? `Pagar ${money(course.price_offer, course.currency)} ahora` : `Inscribirme por ${money(course.price_offer, course.currency)}`}</button>
+      <button class="dk-btn amber wide"><span id="btn-label">{payments.enabled ? 'Pagar' : 'Inscribirme por'}</span> <span id="btn-price">{moneyIn(course.price_offer, course.currency)}</span>{payments.enabled ? ' ahora' : ''}</button>
       {payments.enabled
         ? <p class="fine">Pago seguro{providerName ? ` procesado por ${providerName}` : ''}. Al pagar, tu acceso al campus se activa en el momento.</p>
         : <p class="fine">Validaremos tu solicitud y te contactaremos para coordinar el pago y activar tu acceso.</p>}
@@ -81,6 +90,28 @@ const discount = Math.round((1 - course.price_offer / course.price_regular) * 10
       box.style.borderColor = kind === 'error' ? '#e4313f' : '';
       if (message) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     });
+  }
+</script>
+<script>
+  // El precio y la moneda cambian según el país: Perú paga en soles (si el curso tiene precio en soles); el resto, en dólares.
+  const form = document.querySelector<HTMLFormElement>('form[data-prices]');
+  if (form) {
+    const prices = JSON.parse(form.dataset.prices ?? '{}');
+    const fmt = (v: number, c: string) => new Intl.NumberFormat(c === 'PEN' ? 'es-PE' : 'en-US', { style: 'currency', currency: c, maximumFractionDigits: 0 }).format(v);
+    const select = form.querySelector<HTMLSelectElement>('#country')!;
+    const other = form.querySelector<HTMLInputElement>('#countryOther')!;
+    const set = (id: string, text: string) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    const update = () => {
+      other.hidden = select.value !== '__otro';
+      other.required = select.value === '__otro';
+      const peru = select.value === 'Perú' && prices.pen;
+      const [reg, off, cur] = peru ? prices.pen : prices.usd;
+      set('p-reg', fmt(reg, cur)); set('p-off', fmt(off, cur)); set('p-cur', cur); set('btn-price', fmt(off, cur));
+      set('off', String(Math.round((1 - off / reg) * 100)));
+      const note = document.getElementById('pen-note'); if (note) note.hidden = Boolean(peru);
+    };
+    select.addEventListener('change', update);
+    update();
   }
 </script>
 
