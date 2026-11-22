@@ -9,7 +9,8 @@ const student = Astro.locals.member?.role === 'student';
   {student && <a href="/campus/consultas" aria-current={path === '/campus/consultas' ? 'page' : undefined}>Consultas</a>}
 </nav>
 <style>
-  .campus-nav { gap: 1.5rem; border-bottom: 1px solid var(--line); }
+  .campus-nav { display: flex; flex-wrap: wrap; gap: .25rem 1.4rem; border-bottom: 1px solid var(--line); }
   a { padding-block: .8rem; border-bottom: 2px solid transparent; color: var(--text); text-decoration: none; }
   a:hover, a[aria-current] { border-bottom-color: var(--blue); color: var(--link); }
+  @media (max-width: 40rem) { .campus-nav { gap: 0 1.1rem; } a { padding-block: .7rem; font-size: .92rem; } }
 </style>

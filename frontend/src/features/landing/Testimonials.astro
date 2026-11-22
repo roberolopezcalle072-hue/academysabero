@@ -20,7 +20,7 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) 
           <blockquote>“{t.text}”</blockquote>
           <figcaption>
             {t.photo
-              ? <img class="avatar" src={t.photo} alt={`Foto de ${t.name}`} width="56" height="56" loading="lazy" />
+              ? <img class="avatar" src={t.photo} alt={`Foto de ${t.name}`} width="56" height="56" loading="eager" decoding="async" />
               : <span class="avatar" style={`background:${colors[i % colors.length]}`} aria-hidden="true">{initials(t.name)}</span>}
             <span class="who"><strong>{t.name}</strong><small>{t.role}</small></span>
             {whatsappUrl && (
@@ -73,6 +73,12 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) 
     const halt = () => window.clearInterval(timer);
     root.addEventListener('mouseenter', halt); root.addEventListener('mouseleave', run);
     root.addEventListener('focusin', halt); root.addEventListener('focusout', run);
+    let startX = 0;
+    grid.addEventListener('pointerdown', (e) => { startX = e.clientX; });
+    grid.addEventListener('pointerup', (e) => {
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 40) { halt(); go(start + (dx < 0 ? 1 : -1)); run(); }
+    });
     addEventListener('resize', render);
     render(); run();
   });
@@ -142,4 +148,5 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) 
   .who small { font-size: .76rem; }
   .wa { width: 32px; height: 32px; }
   .wa svg { width: 16px; height: 16px; }
+  .grid { touch-action: pan-y; }
 </style>

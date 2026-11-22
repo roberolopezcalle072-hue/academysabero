@@ -94,6 +94,12 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
   .gbtn svg { flex: none; }
   @media (max-width: 56rem) {
     .authx-grid { grid-template-columns: minmax(0, 1fr); }
-    .visual { min-height: 20rem; }
+    .visual { min-height: 0; display: grid; border-radius: 22px; background: linear-gradient(180deg, #061547, #050f33); }
+    .visual img { position: relative; z-index: auto; height: 11rem; -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent); mask-image: linear-gradient(to bottom, #000 62%, transparent); }
+    .visual::after { display: none; }
+    .visual .overlay { position: static; padding: .25rem 1.25rem 1.25rem; gap: .7rem; margin-top: -2.25rem; position: relative; }
+    .visual h1 { font-size: 1.65rem; }
+    .perks { gap: .4rem; font-size: .92rem; }
+    .offer { font-size: .82rem; padding: .45rem .85rem; }
   }
 </style>

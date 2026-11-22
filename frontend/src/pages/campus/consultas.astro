@@ -30,7 +30,8 @@ const data = result.status === 'ok' ? result.value : null;
 if (!data && Astro.response.status === 200) Astro.response.status = 503;
 const status = { open: 'Abierta', answered: 'Respondida', closed: 'Cerrada' };
 ---
-<BaseLayout title="Consultas" privatePage>
+<BaseLayout title="Consultas" privatePage dark>
+  <div class="dk campus">
   <CampusNavigation />
   <div class="shell page stack inquiries">
     <h1 class="panel-title">Consultas</h1>
@@ -62,6 +63,7 @@ const status = { open: 'Abierta', answered: 'Respondida', closed: 'Cerrada' };
         {data?.hasNext && <a href={`/campus/consultas?page=${page + 1}`}>Siguiente</a>}
       </nav>}
     </section>
+  </div>
   </div>
 </BaseLayout>
 <style>

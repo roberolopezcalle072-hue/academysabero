@@ -13,7 +13,8 @@ if (!agenda) Astro.response.status = 503;
 const next = agenda?.upcoming[0];
 const live = next && Date.parse(next.starts_at) <= Date.now();
 ---
-<BaseLayout title="Sesiones en vivo" privatePage>
+<BaseLayout title="Sesiones en vivo" privatePage dark>
+  <div class="dk campus">
   <CampusNavigation />
   <div class="shell page stack live-page">
     <header class="stack compact">
@@ -73,6 +74,7 @@ const live = next && Date.parse(next.starts_at) <= Date.now();
         </section>
       </>
     ) : <p class="notice" role="status">No se pudo cargar la agenda. Inténtalo de nuevo más tarde.</p>}
+  </div>
   </div>
 </BaseLayout>
 <style>

@@ -82,22 +82,46 @@ const jsonLd = JSON.stringify({
         ) : (
           <a class="wordmark" href="/" aria-label="SABERO ACADEMY"><img src="/logos/logoapp.webp" alt="SABERO ACADEMY" width="180" height="60" style="display:block;height:42px;width:auto" /></a>
         )}
-        <nav aria-label="Navegación principal">
+        <nav aria-label="Navegación principal" class="main-nav">
           {privatePage ? (
             <>
-              <a class="nav-link" href="/cuenta" aria-current={Astro.url.pathname.startsWith('/cuenta') ? 'page' : undefined}>Mi cuenta</a>
-              {member && <a class="nav-link" href="/campus" aria-current={Astro.url.pathname.startsWith('/campus') ? 'page' : undefined}>Campus</a>}
-              {member?.role === 'admin' && <a class="nav-link" href="/admin" aria-current={Astro.url.pathname.startsWith('/admin') ? 'page' : undefined}>Administración</a>}
-              <form method="post" action="/auth/salir"><button class="button outline">Cerrar sesión</button></form>
+              <div class="nav-links">
+                <a class="nav-link" href="/cuenta" aria-current={Astro.url.pathname.startsWith('/cuenta') ? 'page' : undefined}>Mi cuenta</a>
+                {member && <a class="nav-link" href="/campus" aria-current={Astro.url.pathname.startsWith('/campus') ? 'page' : undefined}>Campus</a>}
+                {member?.role === 'admin' && <a class="nav-link" href="/admin" aria-current={Astro.url.pathname.startsWith('/admin') ? 'page' : undefined}>Administración</a>}
+                <form method="post" action="/auth/salir"><button class="button outline">Cerrar sesión</button></form>
+              </div>
+              <details class="burger">
+                <summary aria-label="Abrir menú"><span class="lines"></span></summary>
+                <div class="drawer">
+                  <a href="/cuenta">Mi cuenta</a>
+                  {member && <a href="/campus">Campus</a>}
+                  {member?.role === 'admin' && <a href="/admin">Administración</a>}
+                  <form method="post" action="/auth/salir"><button class="button outline">Cerrar sesión</button></form>
+                </div>
+              </details>
             </>
           ) : (
             <>
-              <a class="nav-link" href="/" aria-current={Astro.url.pathname === '/' ? 'page' : undefined}>Inicio</a>
-              <a class="nav-link" href="/#nosotros">Nosotros</a>
-              <a class="nav-link" href="/#servicios">Servicios</a>
-              <a class="nav-link" href="/#vision">Visión</a>
-              <a class="nav-link" href="/#comentarios">Comentarios</a>
+              <div class="nav-links">
+                <a class="nav-link" href="/" aria-current={Astro.url.pathname === '/' ? 'page' : undefined}>Inicio</a>
+                <a class="nav-link" href="/#nosotros">Nosotros</a>
+                <a class="nav-link" href="/#servicios">Servicios</a>
+                <a class="nav-link" href="/#vision">Visión</a>
+                <a class="nav-link" href="/#comentarios">Comentarios</a>
+              </div>
               <a class="button primary nav-cta" href="/ingresar">Iniciar sesión</a>
+              <details class="burger">
+                <summary aria-label="Abrir menú"><span class="lines"></span></summary>
+                <div class="drawer">
+                  <a href="/">Inicio</a>
+                  <a href="/#nosotros">Nosotros</a>
+                  <a href="/#servicios">Servicios</a>
+                  <a href="/#vision">Visión</a>
+                  <a href="/#comentarios">Comentarios</a>
+                  <a href="/registro">Crear cuenta</a>
+                </div>
+              </details>
             </>
           )}
         </nav>
@@ -128,6 +152,12 @@ const jsonLd = JSON.stringify({
         </div>
       </div>
     </footer>
-    {!privatePage && <WhatsAppButton />}
+    <script is:inline data-id="burger-script">
+      document.querySelectorAll('.burger').forEach(function (d) {
+        d.addEventListener('click', function (e) { if (e.target.closest('.drawer a')) d.removeAttribute('open'); });
+        document.addEventListener('click', function (e) { if (!d.contains(e.target)) d.removeAttribute('open'); });
+      });
+    </script>
+    {!privatePage && !['/registro', '/ingresar'].includes(Astro.url.pathname) && <WhatsAppButton />}
   </body>
 </html>

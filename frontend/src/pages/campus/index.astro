@@ -13,7 +13,8 @@ const next = data?.pending[0];
 const session = data?.next_session;
 const inProgress = session && new Date(session.starts_at).getTime() <= Date.now();
 ---
-<BaseLayout title="Campus" privatePage>
+<BaseLayout title="Campus" privatePage dark>
+  <div class="dk campus">
   <CampusNavigation />
   <div class="shell page stack campus-home">
     <header class="stack compact">
@@ -74,6 +75,7 @@ const inProgress = session && new Date(session.starts_at).getTime() <= Date.now(
           <a href="/ingresar?estado=activar">Canjear un código de matrícula</a>}
       </>
     ) : <p class="notice" role="status">No se pudo cargar el campus. Vuelve a intentarlo en unos minutos.</p>}
+  </div>
   </div>
 </BaseLayout>
 <style>

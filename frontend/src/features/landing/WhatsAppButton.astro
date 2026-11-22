@@ -11,6 +11,7 @@ import { whatsappUrl } from './content';
   .wa-float::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #25d366; opacity: 0; }
   .wa-float:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 10px 24px rgb(37 211 102 / .55), 0 3px 8px rgb(7 27 53 / .25); }
   .wa-float:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+  @media (max-width: 40rem) { .wa-float { width: 50px; height: 50px; right: .9rem; bottom: .9rem; } .wa-float svg { width: 27px; height: 27px; } }
   @media (prefers-reduced-motion: no-preference) {
     .wa-float::after { animation: ping 2.8s ease-out infinite; }
     @keyframes ping { 0% { transform: scale(1); opacity: .55; } 70%, 100% { transform: scale(1.45); opacity: 0; } }

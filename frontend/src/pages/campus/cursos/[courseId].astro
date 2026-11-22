@@ -36,7 +36,8 @@ const sections = lesson ? [
 ] : [];
 const next = lesson && lessons.slice(lessons.indexOf(lesson) + 1).find(item => !item.completed);
 ---
-<BaseLayout title={course?.name ?? 'Curso'} privatePage>
+<BaseLayout title={course?.name ?? 'Curso'} privatePage dark>
+  <div class="dk campus">
   <CampusNavigation />
   <div class="shell page stack course-page">
     <a href="/campus#cursos">Volver a mis cursos</a>
@@ -104,6 +105,7 @@ const next = lesson && lessons.slice(lessons.indexOf(lesson) + 1).find(item => !
         </div>
       </>
     ) : <p class="notice" role="status">{result.status === 'missing' ? 'Este curso no está disponible para tu cuenta.' : 'No se pudo cargar el curso.'}</p>}
+  </div>
   </div>
 </BaseLayout>
 <style>
