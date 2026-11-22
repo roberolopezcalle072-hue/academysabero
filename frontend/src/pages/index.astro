@@ -56,7 +56,7 @@ const price = program?.launch_price != null && program.currency
         {about.paragraphs.map(t => <p class="lead">{t}</p>)}
       </div>
       <ul class="stats">
-        {about.stats.map(s => <li><strong>{s.value}</strong><span>{s.label}</span></li>)}
+        {about.stats.map((s, i) => <li style={`--c:${['#0b7bff', '#f08a24', '#16a34a'][i % 3]}`}><strong>{s.value}</strong><span>{s.label}</span></li>)}
       </ul>
     </div>
   </section>
@@ -302,4 +302,13 @@ const price = program?.launch_price != null && program.currency
   #servicios .icon { background: linear-gradient(145deg, var(--c), color-mix(in srgb, var(--c) 62%, #000)); color: #fff; box-shadow: 0 8px 18px color-mix(in srgb, var(--c) 35%, transparent); }
   #servicios .card h3 { color: var(--navy); }
   #servicios .card { transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease; }
+
+  /* Nosotros: cifras con color y un poco más de aire */
+  #nosotros .about { gap: clamp(2.25rem, 5vw, 5rem); }
+  #nosotros .stack { gap: 1.25rem; }
+  #nosotros .lead { line-height: 1.75; }
+  #nosotros .stats { gap: 1.1rem; }
+  #nosotros .stats li { padding: 1.3rem 1.6rem; background: color-mix(in srgb, var(--c) 6%, #fff); border: 1px solid color-mix(in srgb, var(--c) 24%, #fff); gap: .15rem; transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease; }
+  #nosotros .stats li:hover { border-color: var(--c); box-shadow: 0 14px 30px color-mix(in srgb, var(--c) 20%, transparent); transform: translateY(-2px); }
+  #nosotros .stats strong { color: var(--c); }
 </style>
