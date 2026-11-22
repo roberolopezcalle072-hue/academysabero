@@ -85,7 +85,7 @@ const price = program?.launch_price != null && program.currency
         <p class="lead">{vision.text}</p>
       </div>
       <ul class="values">
-        {vision.values.map(v => <li><h3>{v.title}</h3><p>{v.text}</p></li>)}
+        {vision.values.map((v, i) => <li style={`--c:${['#0b7bff', '#d4183d', '#16a34a'][i % 3]}`}><h3>{v.title}</h3><p>{v.text}</p></li>)}
       </ul>
     </div>
   </section>
@@ -311,4 +311,14 @@ const price = program?.launch_price != null && program.currency
   #nosotros .stats li { padding: 1.3rem 1.6rem; background: color-mix(in srgb, var(--c) 6%, #fff); border: 1px solid color-mix(in srgb, var(--c) 24%, #fff); gap: .15rem; transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease; }
   #nosotros .stats li:hover { border-color: var(--c); box-shadow: 0 14px 30px color-mix(in srgb, var(--c) 20%, transparent); transform: translateY(-2px); }
   #nosotros .stats strong { color: var(--c); }
+
+  /* Visión: tarjetas con color y un poco más de aire */
+  #vision .vision { gap: clamp(2.25rem, 5vw, 5rem); }
+  #vision .stack { gap: 1.25rem; }
+  #vision .lead { line-height: 1.75; }
+  #vision .values { gap: 1.1rem; }
+  #vision .values li { padding: 1.3rem 1.6rem; background: color-mix(in srgb, var(--c) 6%, #fff); border: 1px solid color-mix(in srgb, var(--c) 24%, #fff); transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease; }
+  #vision .values li:hover { border-color: var(--c); box-shadow: 0 14px 30px color-mix(in srgb, var(--c) 20%, transparent); transform: translateY(-2px); }
+  #vision .values h3 { color: var(--c); }
+  #vision .kicker { color: var(--red); }
 </style>
