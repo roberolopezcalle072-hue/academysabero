@@ -8,6 +8,9 @@ export const WHATSAPP_MESSAGE = 'Hola, quiero más información sobre SABERO Aca
 // Correo público de contacto (se muestra en el pie y en las páginas legales).
 export const CONTACT_EMAIL = 'gerencia@saberoconsulting.com';
 
+// Política de reembolso: plazo en días calendario desde la activación del acceso. Cámbialo aquí.
+export const REFUND = { days: 7 };
+
 export const whatsappUrl = WHATSAPP_NUMBER
   ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`
   : null;
@@ -103,6 +106,7 @@ export const footerColumns: { title: string; links: FooterLink[] }[] = [
     links: [
       { label: 'Política de privacidad', href: '/privacidad' },
       { label: 'Términos del servicio', href: '/terminos' },
+      { label: 'Política de reembolso', href: '/reembolso' },
       { label: 'Mapa del sitio', href: '/sitemap.xml' },
     ],
   },

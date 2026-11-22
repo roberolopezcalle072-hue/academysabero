@@ -1,0 +1,45 @@
+---
+import BaseLayout from '../shared/presentation/BaseLayout.astro';
+import { CONTACT_EMAIL, REFUND, whatsappUrl } from '../features/landing/content';
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=3600');
+---
+<BaseLayout title="Política de reembolso" description="Política de reembolso de los cursos de SABERO Academy: plazo, cómo solicitarlo y qué costos no son reembolsables.">
+  <article class="shell page stack legal-doc">
+    <p class="kicker">SABERO Consulting</p>
+    <h1 class="panel-title">Política de reembolso</h1>
+    <p><em>Versión v1 · Última actualización: 22 de noviembre de 2026.</em></p>
+
+    <h2>1. A qué se aplica</h2>
+    <p>Esta política aplica a los cursos de SABERO Academy que compras a través de este sitio. Complementa los <a href="/terminos-compra">términos y condiciones de compra</a>.</p>
+
+    <h2>2. Plazo para pedir el reembolso</h2>
+    <p>Puedes solicitar el reembolso del curso dentro de los <strong>{REFUND.days} días calendario</strong> posteriores a la activación de tu acceso al campus. Pasado ese plazo ya no podremos tramitarlo.</p>
+
+    <h2>3. Cómo solicitarlo</h2>
+    <p>Escríbenos indicando tu <strong>nombre completo</strong>, el <strong>correo de tu cuenta</strong> y el curso comprado.
+      {CONTACT_EMAIL ? <> Puedes hacerlo a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></> : null}
+      {whatsappUrl ? <> o por <a href={whatsappUrl} rel="noopener noreferrer">WhatsApp</a></> : null}.
+      Revisaremos tu solicitud y te responderemos con el resultado.</p>
+
+    <h2>4. Qué se reembolsa</h2>
+    <p>Se reembolsa el <strong>monto que pagaste por el curso</strong>, es decir, el precio que figuraba en tu solicitud de inscripción. La devolución se hace, cuando sea posible, por el mismo medio con el que pagaste.</p>
+
+    <h2>5. Qué no se reembolsa</h2>
+    <ul>
+      <li>Los servicios de terceros que contrates por tu cuenta: <strong>VPS, dominio, planes de suscripción, códigos o licencias y DeepSeek</strong>. Esos pagos van directamente a sus proveedores y SABERO no los recibe ni puede devolverlos.</li>
+      <li>Solicitudes hechas fuera del plazo indicado.</li>
+      <li>Casos de uso indebido, como compartir tu cuenta o redistribuir los materiales y grabaciones.</li>
+    </ul>
+
+    <h2>6. Después del reembolso</h2>
+    <p>Al aprobarse el reembolso, tu acceso al curso en el campus se desactiva. Tu cuenta sigue existiendo y puedes inscribirte en otros cursos cuando quieras.</p>
+
+    <h2>7. Dudas</h2>
+    <p>Si tienes preguntas sobre esta política antes de comprar, escríbenos. También puedes revisar nuestra <a href="/privacidad">política de privacidad</a> y los <a href="/terminos">términos del servicio</a>.</p>
+  </article>
+</BaseLayout>
+<style>
+  .legal-doc { max-width: 46rem; }
+  .legal-doc h2 { margin-top: 1.25rem; font-size: 1.25rem; }
+  .legal-doc ul { margin: 0; padding-left: 1.25rem; display: grid; gap: .45rem; }
+</style>
