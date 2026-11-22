@@ -1,6 +1,6 @@
 import { requiredEnv } from '../config/server';
 
-export function apiRequest(path: string, token?: string, body?: object) {
+export function apiRequest(path: string, token?: string, body?: object, timeoutMs = 5000) {
   const base = requiredEnv('API_BASE_URL').replace(/\/+$/, '');
   const headers = new Headers();
   if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -9,7 +9,7 @@ export function apiRequest(path: string, token?: string, body?: object) {
     method: body ? 'POST' : 'GET',
     headers,
     body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(5000),
+    signal: AbortSignal.timeout(timeoutMs),
     redirect: 'error',
   });
 }

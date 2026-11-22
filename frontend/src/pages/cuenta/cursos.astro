@@ -1,12 +1,12 @@
 ---
 import BaseLayout from '../../shared/presentation/BaseLayout.astro';
 import PromoTimer from '../../features/enrollment/PromoTimer.astro';
-import { loadCatalog } from '../../features/enrollment/infrastructure/enrollment-api';
+import { loadCatalog, loadPaymentsConfig } from '../../features/enrollment/infrastructure/enrollment-api';
 import { money } from '../../features/landing/promo';
 
 const token = Astro.locals.accessToken;
 if (!token) return Astro.redirect('/ingresar', 303);
-const catalog = await loadCatalog(token);
+const [catalog, payments] = await Promise.all([loadCatalog(token), loadPaymentsConfig()]);
 if (!catalog) Astro.response.status = 503;
 const discount = (regular: number, offer: number) => Math.round((1 - offer / regular) * 100);
 ---
@@ -34,7 +34,7 @@ const discount = (regular: number, offer: number) => Math.round((1 - offer / reg
             <p class="price"><s>{money(c.price_regular, c.currency)}</s><strong>{money(c.price_offer, c.currency)}</strong><span>{c.currency}</span></p>
             {c.enrolled ? (
               <a class="dk-btn" href="/campus">Ir al curso</a>
-            ) : c.request_status === 'pending' ? (
+            ) : c.request_status === 'pending' && !payments.enabled ? (
               <span class="dk-btn ghost" aria-disabled="true">Solicitud en revisión</span>
             ) : (
               <a class="dk-btn amber" href={`/cuenta/inscripcion/${c.id}`}>Inscribirme ahora ›</a>

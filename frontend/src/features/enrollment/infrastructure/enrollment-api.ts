@@ -56,3 +56,15 @@ export async function loadAdminRequests(token: string, status: string, page: num
 export function decideRequest(token: string, id: string, approve: boolean, note: string | null) {
   return apiRequest(`/admin/enrollment-requests/${id}/decision`, token, { approve, note });
 }
+
+export interface PaymentsConfig { enabled: boolean; provider?: string; [key: string]: unknown }
+
+/** Indica si el pago en línea está activo (hay una pasarela configurada en el backend). */
+export async function loadPaymentsConfig(): Promise<PaymentsConfig> {
+  try {
+    const response = await apiRequest('/payments/config');
+    return response.ok ? await response.json() : { enabled: false };
+  } catch {
+    return { enabled: false };
+  }
+}

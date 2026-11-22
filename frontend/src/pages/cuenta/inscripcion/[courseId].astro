@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../../shared/presentation/BaseLayout.astro';
 import PromoTimer from '../../../features/enrollment/PromoTimer.astro';
-import { loadCatalog } from '../../../features/enrollment/infrastructure/enrollment-api';
+import { loadCatalog, loadPaymentsConfig } from '../../../features/enrollment/infrastructure/enrollment-api';
 import { money } from '../../../features/landing/promo';
 
 const token = Astro.locals.accessToken;
@@ -12,7 +12,11 @@ if (!catalog) return new Response(null, { status: 503 });
 const course = catalog.find((c) => c.id === courseId);
 if (!course) return Astro.redirect('/cuenta/cursos', 303);
 if (course.enrolled) return Astro.redirect('/campus', 303);
-if (course.request_status === 'pending') return Astro.redirect('/cuenta?estado=solicitud-existente', 303);
+const payments = await loadPaymentsConfig();
+// Sin pago en línea, una solicitud pendiente se revisa a mano; con pago en línea se puede reintentar el pago.
+if (!payments.enabled && course.request_status === 'pending') return Astro.redirect('/cuenta?estado=solicitud-existente', 303);
+const providerNames: Record<string, string> = { culqi: 'Culqi' };
+const providerName = payments.provider ? (providerNames[payments.provider] ?? '') : '';
 
 const state = Astro.url.searchParams.get('estado');
 const message = state === 'datos' ? 'Revisa los datos del formulario.' : state === 'terminos' ? 'Debes aceptar los términos para continuar.' : state === 'servicio' ? 'No se pudo enviar tu solicitud. Inténtalo de nuevo.' : '';
@@ -41,7 +45,7 @@ const discount = Math.round((1 - course.price_offer / course.price_regular) * 10
       </div>
     </div>
 
-    <form class="form dk-card" action="/cuenta/solicitar" method="post">
+    <form class="form dk-card" action="/cuenta/solicitar" method="post" data-pay={payments.enabled ? '1' : undefined}>
       <h2>Tus datos</h2>
       {message && <p class="notice" role="status">{message}</p>}
       <input type="hidden" name="courseId" value={course.id} />
@@ -57,12 +61,28 @@ const discount = Math.round((1 - course.price_offer / course.price_regular) * 10
       <label class="check"><input type="checkbox" name="acceptTerms" required />
         <span>He leído y acepto los <a href="/terminos-compra" target="_blank" rel="noopener">términos y condiciones de compra</a> y la <a href="/reembolso" target="_blank" rel="noopener">política de reembolso</a>, incluido que debo adquirir por mi cuenta VPS, dominio, plan de suscripción, códigos y DeepSeek.</span>
       </label>
-      <button class="dk-btn amber wide">Inscribirme por {money(course.price_offer, course.currency)}</button>
-      <p class="fine">Validaremos tu solicitud y te contactaremos para coordinar el pago y activar tu acceso.</p>
+      <p class="notice" id="pay-msg" role="status" hidden></p>
+      <button class="dk-btn amber wide">{payments.enabled ? `Pagar ${money(course.price_offer, course.currency)} ahora` : `Inscribirme por ${money(course.price_offer, course.currency)}`}</button>
+      {payments.enabled
+        ? <p class="fine">Pago seguro{providerName ? ` procesado por ${providerName}` : ''}. Al pagar, tu acceso al campus se activa en el momento.</p>
+        : <p class="fine">Validaremos tu solicitud y te contactaremos para coordinar el pago y activar tu acceso.</p>}
     </form>
   </section>
   </div>
 </BaseLayout>
+<script>
+  import { setupCheckout } from '../../../features/payments/checkout';
+  const form = document.querySelector<HTMLFormElement>('form[data-pay]');
+  const box = document.getElementById('pay-msg');
+  if (form && box) {
+    setupCheckout(form, (message, kind) => {
+      box.hidden = !message;
+      box.textContent = message;
+      box.style.borderColor = kind === 'error' ? '#e4313f' : '';
+      if (message) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  }
+</script>
 
 <style>
   .enroll { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(1.5rem, 4vw, 3.5rem); align-items: start; padding-block: clamp(2rem, 4vw, 3.5rem); }

@@ -92,3 +92,15 @@ El panel /admin/cursos permite editar el programa público, cursos, módulos, le
 ## Sistema visual
 
 Los tokens y componentes básicos están en `frontend/src/shared/styles/global.css`. La landing, el inicio de sesión y los paneles comparten tipografía, navegación, espaciados, estados de foco, separadores y botones rectangulares. La paleta base respeta los seis colores corporativos e incorpora un azul más oscuro para texto y botones sobre fondos claros. La implementación se basó en la descripción visual porque la captura de referencia no estaba disponible en el espacio de trabajo.
+
+## Pagos con pasarela
+
+El cobro es independiente del proveedor. El backend define el contrato `PaymentProvider` (`backend/src/modules/payments/application/payment-provider.ts`) y cada pasarela es un adaptador (`culqi-provider.ts`). Flujo: el alumno completa sus datos y acepta los términos → el backend crea el pago (`academy_start_payment`) → el navegador abre el formulario de la pasarela y obtiene un token → el backend cobra con la llave secreta y confirma el pago en la base con un secreto interno (`academy_confirm_payment`), que activa la matrícula. Un cobro simultáneo se bloquea con el estado `processing`.
+
+| Variable (backend) | Uso |
+| --- | --- |
+| `PAYMENT_PROVIDER` | `culqi`, o vacío para desactivar el pago en línea (queda la solicitud manual). `mock` solo en desarrollo. |
+| `CULQI_PUBLIC_KEY`, `CULQI_SECRET_KEY` | Llaves de Culqi. Ambas de prueba (`pk_test_`/`sk_test_`) o ambas de producción. |
+| `PAYMENT_INTERNAL_SECRET` | Secreto que autoriza al backend a confirmar pagos. Su SHA-256 está en `academy_internal_secrets`. |
+
+Para cambiar de pasarela: escribir un adaptador que implemente `PaymentProvider`, registrarlo en `provider-factory.ts` y añadir su apertura de formulario en `frontend/src/features/payments/checkout.ts`. La base de datos y las pantallas no cambian.
