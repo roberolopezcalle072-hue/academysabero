@@ -20,6 +20,7 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
         <p class="kicker">SABERO Consulting</p>
         <h1 class="panel-title">Acceso al campus</h1>
         <p>Formación privada de SABERO Academy.</p>
+        <figure class="frame"><img src="/images/agente-ia.webp" alt="Alumnos con el agente de IA de ventas de SABERO Academy" width="1400" height="788" loading="eager" /></figure>
       </div>
       <div class="stack login-form">
         <h2>{redeem ? 'Activa tu matrícula' : 'Ingresa a tu cuenta'}</h2>
@@ -48,5 +49,8 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
   .brand-block { color: var(--white); border-left: 3px solid var(--cyan); padding-left: clamp(1rem, 3vw, 2rem); }
   .brand-block .kicker { color: var(--cyan); }
   .login-form { background: var(--white); border-top: 3px solid var(--blue); padding: clamp(1.25rem, 4vw, 3rem); }
-  @media (max-width: 44rem) { .login-grid { grid-template-columns: 1fr; } }
+  .brand-block h1 { color: var(--white); }
+  .frame { margin: .5rem 0 0; width: 100%; max-width: 26rem; padding: .5rem; border: 1px solid #3a5878; background: rgb(255 255 255 / .06); box-shadow: 0 18px 40px rgb(0 0 0 / .35); }
+  .frame img { display: block; width: 100%; height: 11rem; object-fit: cover; object-position: 55% center; }
+  @media (max-width: 44rem) { .login-grid { grid-template-columns: 1fr; } .frame img { height: 9rem; } }
 </style>
