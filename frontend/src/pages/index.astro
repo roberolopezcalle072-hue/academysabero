@@ -321,4 +321,8 @@ const price = program?.launch_price != null && program.currency
   #vision .values li:hover { border-color: var(--c); box-shadow: 0 14px 30px color-mix(in srgb, var(--c) 20%, transparent); transform: translateY(-2px); }
   #vision .values h3 { color: var(--c); }
   #vision .kicker { color: var(--red); }
+
+  /* Un poco más de ancho útil en los bloques de texto */
+  #nosotros .lead, #vision .lead { max-width: 68ch; }
+  #nosotros h2, #vision h2 { max-width: 26ch; }
 </style>
