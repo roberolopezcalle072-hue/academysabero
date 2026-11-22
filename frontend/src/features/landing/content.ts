@@ -13,9 +13,9 @@ export const whatsappUrl = WHATSAPP_NUMBER
   : null;
 
 export const hero = {
-  badge: 'Formación privada · Agentes de IA para ventas',
-  title: 'Crea tu agente de IA que vende por ti',
-  intro: 'Aprende a construir un agente que atiende a tus clientes en WhatsApp, da seguimiento, agenda y registra todo en tu propio mini CRM. Con método, en vivo y acompañado.',
+  badge: 'Formación privada · Tecnología para tu negocio',
+  title: 'Domina la tecnología que hace crecer tu negocio',
+  intro: 'Agentes de IA, automatización, WhatsApp, mini CRM, webs y mucho más. Formación práctica, en vivo y acompañada para que apliques la tecnología donde más importa: tus ventas.',
 };
 
 export const about = {
