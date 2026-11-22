@@ -1,11 +1,12 @@
 ---
 import '../styles/global.css';
+import WhatsAppButton from '../../features/landing/WhatsAppButton.astro';
 
-interface Props { title: string; privatePage?: boolean }
-const { title, privatePage = false } = Astro.props;
+interface Props { title: string; privatePage?: boolean; description?: string }
+const { title, privatePage = false, description: pageDescription } = Astro.props;
 const member = Astro.locals.member;
 const site = 'https://academy.saberoconsulting.com';
-const description = 'Campus privado de formación de SABERO Consulting.';
+const description = pageDescription ?? 'Campus privado de formación de SABERO Consulting.';
 const fullTitle = `${title} | SABERO ACADEMY`;
 const canonical = `${site}${Astro.url.pathname}`;
 const jsonLd = JSON.stringify({
@@ -83,7 +84,8 @@ const jsonLd = JSON.stringify({
     </header>
     <main id="contenido" tabindex="-1"><slot /></main>
     <footer class="site-footer">
-      <div class="shell footer-content"><strong>SABERO Consulting</strong><span>Academia privada de formación</span></div>
+      <div class="shell footer-content"><strong>SABERO Consulting</strong><span>Academia privada de formación</span><nav aria-label="Legal" class="legal"><a href="/privacidad">Privacidad</a><a href="/terminos">Términos</a></nav></div>
     </footer>
+    {!privatePage && <WhatsAppButton />}
   </body>
 </html>

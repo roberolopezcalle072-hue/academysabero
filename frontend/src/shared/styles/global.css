@@ -60,3 +60,5 @@ input:not([type="checkbox"]), select {
   color: var(--text);
   background: var(--white);
 }
+
+.legal{display:flex;gap:1rem}.legal a{color:var(--muted)}

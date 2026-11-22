@@ -1,0 +1,38 @@
+---
+import BaseLayout from '../shared/presentation/BaseLayout.astro';
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=3600');
+---
+<BaseLayout title="Términos del servicio" description="Términos de uso del campus privado SABERO Academy.">
+  <article class="shell page stack legal-doc">
+    <p class="kicker">SABERO Consulting</p>
+    <h1 class="panel-title">Términos del servicio</h1>
+    <p><em>Última actualización: 22 de noviembre de 2026.</em></p>
+
+    <h2>Acceso</h2>
+    <p>El campus es privado. Solo pueden acceder las personas cuyo correo haya sido autorizado por SABERO Consulting y que cuenten con una matrícula activa.</p>
+
+    <h2>Uso adecuado</h2>
+    <ul>
+      <li>La cuenta es personal e intransferible.</li>
+      <li>Los contenidos, grabaciones y materiales son para uso exclusivo del alumno y no pueden redistribuirse sin autorización.</li>
+      <li>No se permite intentar acceder a información de otros usuarios ni alterar el funcionamiento del servicio.</li>
+    </ul>
+
+    <h2>Propiedad intelectual</h2>
+    <p>Los contenidos de los cursos pertenecen a SABERO Consulting o a sus autores y están protegidos por la normativa de propiedad intelectual.</p>
+
+    <h2>Disponibilidad</h2>
+    <p>Procuramos que el campus esté disponible de forma continua, pero pueden producirse interrupciones por mantenimiento o causas ajenas a nuestro control.</p>
+
+    <h2>Suspensión</h2>
+    <p>Podemos suspender o revocar el acceso ante un uso contrario a estos términos o cuando finalice la matrícula.</p>
+
+    <h2>Datos personales</h2>
+    <p>El tratamiento de tus datos se describe en nuestra <a href="/privacidad">política de privacidad</a>.</p>
+  </article>
+</BaseLayout>
+<style>
+  .legal-doc { max-width: 46rem; }
+  .legal-doc h2 { margin-top: 1.5rem; font-size: 1.4rem; }
+  .legal-doc ul { margin: 0; padding-left: 1.25rem; }
+</style>

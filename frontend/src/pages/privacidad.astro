@@ -1,0 +1,45 @@
+---
+import BaseLayout from '../shared/presentation/BaseLayout.astro';
+import { CONTACT_EMAIL, whatsappUrl } from '../features/landing/content';
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=3600');
+---
+<BaseLayout title="Política de privacidad" description="Política de privacidad de SABERO Academy: qué datos tratamos al iniciar sesión con Google y cómo los protegemos.">
+  <article class="shell page stack legal-doc">
+    <p class="kicker">SABERO Consulting</p>
+    <h1 class="panel-title">Política de privacidad</h1>
+    <p><em>Última actualización: 22 de noviembre de 2026.</em></p>
+
+    <h2>Quiénes somos</h2>
+    <p>SABERO Academy es el campus privado de formación de SABERO Consulting, disponible en academy.saberoconsulting.com.</p>
+
+    <h2>Qué datos tratamos</h2>
+    <p>Cuando inicias sesión con Google recibimos únicamente tu <strong>dirección de correo electrónico</strong>, tu <strong>nombre</strong> y un <strong>identificador de cuenta</strong>. No accedemos a tu Gmail, contactos, Drive personal ni a ningún otro dato de tu cuenta de Google. Además guardamos la información académica que genera tu uso del campus: matrículas, progreso y consultas que envíes.</p>
+
+    <h2>Para qué los usamos</h2>
+    <ul>
+      <li>Verificar que tu correo está autorizado y darte acceso a tus cursos.</li>
+      <li>Mostrar tu progreso, sesiones en vivo y materiales.</li>
+      <li>Responder las consultas que nos envíes.</li>
+    </ul>
+    <p>No vendemos ni cedemos tus datos a terceros con fines publicitarios.</p>
+
+    <h2>Dónde se guardan y quién los procesa</h2>
+    <p>Los datos se almacenan en Supabase (base de datos y autenticación) y el sitio se aloja en Vercel. La autenticación se realiza mediante Google Sign-In. Estos proveedores tratan los datos como encargados, bajo sus propias garantías de seguridad.</p>
+
+    <h2>Seguridad</h2>
+    <p>Las sesiones se transmiten por HTTPS con cookies protegidas, y el acceso a los datos está limitado por reglas de seguridad a nivel de base de datos: cada alumno solo ve su propia información.</p>
+
+    <h2>Conservación y tus derechos</h2>
+    <p>Conservamos tus datos mientras mantengas una matrícula o relación con la academia. Puedes solicitar acceso, rectificación o eliminación de tus datos en cualquier momento escribiéndonos.</p>
+
+    <h2>Contacto</h2>
+    <p>
+      {CONTACT_EMAIL ? <>Escríbenos a <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</> : whatsappUrl ? <>Contáctanos por <a href={whatsappUrl} rel="noopener noreferrer">WhatsApp</a>.</> : <>Contáctanos a través de SABERO Consulting.</>}
+    </p>
+  </article>
+</BaseLayout>
+<style>
+  .legal-doc { max-width: 46rem; }
+  .legal-doc h2 { margin-top: 1.5rem; font-size: 1.4rem; }
+  .legal-doc ul { margin: 0; padding-left: 1.25rem; }
+</style>

@@ -1,25 +1,26 @@
 ---
 import BaseLayout from '../shared/presentation/BaseLayout.astro';
+import Icon from '../features/landing/Icon.astro';
+import { about, services, vision, testimonials, whatsappUrl } from '../features/landing/content';
 import { loadProgram } from '../features/learning/infrastructure/learning-api';
 
 const result = await loadProgram();
 const program = result.status === 'ok' ? result.value : null;
-if (result.status === 'unavailable') Astro.response.status = 503;
-Astro.response.headers.set('Cache-Control', 'no-store');
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
 const price = program?.launch_price != null && program.currency
   ? new Intl.NumberFormat('es-PE', { style: 'currency', currency: program.currency }).format(program.launch_price)
   : null;
 ---
-<BaseLayout title="Formación profesional">
+<BaseLayout title="Formación profesional" description="SABERO Academy: campus privado de formación de SABERO Consulting con cursos, sesiones en vivo, recursos y acompañamiento personalizado.">
   <section class="hero">
     <div class="shell hero-content">
-      <div class="stack">
+      <div class="stack hero-copy">
         <p class="kicker">SABERO Consulting</p>
         <h1>{program?.title ?? 'SABERO Academy'}</h1>
-        <p class="intro">{program?.introduction ?? 'Campus privado de formación de SABERO Consulting.'}</p>
+        <p class="intro">{program?.introduction ?? 'Campus privado de formación de SABERO Consulting. Aprende con método, en vivo y con acompañamiento real.'}</p>
         <div class="hero-actions">
-          {program && <a class="button hero-action" href="#inscripcion">Información de inscripción</a>}
-          <a class="button outline" href="/ingresar">Acceso de alumnos</a>
+          <a class="button hero-action" href="/ingresar">Acceder al campus</a>
+          <a class="button outline" href="#servicios">Conoce nuestros servicios</a>
         </div>
       </div>
       {program?.welcome_drive_file_id ? (
@@ -33,42 +34,116 @@ const price = program?.launch_price != null && program.currency
       ) : <div class="geometry" aria-hidden="true"><span></span></div>}
     </div>
   </section>
-  {program ? (
-    <div class="shell page stack overview">
-      <section class="formation" aria-labelledby="formacion">
-        <div class="stack">
-          <h2 id="formacion">La formación</h2>
-          <p class="copy">{program.description}</p>
-        </div>
-        <dl>
-          <div><dt>Duración</dt><dd>{program.duration_text}</dd></div>
-          {price && <div><dt>Precio de lanzamiento</dt><dd>{price}</dd></div>}
-        </dl>
-      </section>
-      {program.benefits.length > 0 && <section class="stack benefits">
-        <h2>Beneficios del programa</h2>
-        <ul>{program.benefits.map(benefit => <li>{benefit}</li>)}</ul>
-      </section>}
-      <section id="inscripcion" class="stack registration">
-        <h2>Inscripción</h2>
-        <p class="copy">{program.registration_text}</p>
-        <a class="button primary" href={program.registration_url}>Solicitar inscripción</a>
-      </section>
+
+  <section id="nosotros" class="band" aria-labelledby="t-nosotros">
+    <div class="shell about">
+      <div class="stack">
+        <p class="kicker">{about.kicker}</p>
+        <h2 id="t-nosotros">{about.title}</h2>
+        {about.paragraphs.map(t => <p class="lead">{t}</p>)}
+      </div>
+      <ul class="stats">
+        {about.stats.map(s => <li><strong>{s.value}</strong><span>{s.label}</span></li>)}
+      </ul>
     </div>
-  ) : (
-    <section class="shell page stack">
-      <h2>Programa de formación</h2>
-      <p role="status">{result.status === 'unavailable'
-        ? 'No se pudo cargar la información del programa. Inténtalo de nuevo más tarde.'
-        : 'La información del próximo programa aún no está publicada.'}</p>
+  </section>
+
+  <section id="servicios" class="band alt" aria-labelledby="t-servicios">
+    <div class="shell stack">
+      <p class="kicker">Servicios</p>
+      <h2 id="t-servicios">Todo lo que necesitas para formarte</h2>
+      <div class="cards">
+        {services.map(s => (
+          <article class="card">
+            <span class="icon"><Icon name={s.icon} /></span>
+            <h3>{s.title}</h3>
+            <p>{s.text}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section id="vision" class="band dark" aria-labelledby="t-vision">
+    <div class="shell vision">
+      <div class="stack">
+        <p class="kicker">{vision.kicker}</p>
+        <h2 id="t-vision">{vision.title}</h2>
+        <p class="lead">{vision.text}</p>
+      </div>
+      <ul class="values">
+        {vision.values.map(v => <li><h3>{v.title}</h3><p>{v.text}</p></li>)}
+      </ul>
+    </div>
+  </section>
+
+  {program && (
+    <section id="programa" class="band" aria-labelledby="formacion">
+      <div class="shell stack overview">
+        <div class="formation">
+          <div class="stack">
+            <p class="kicker">Programa</p>
+            <h2 id="formacion">La formación</h2>
+            <p class="copy">{program.description}</p>
+          </div>
+          <dl>
+            <div><dt>Duración</dt><dd>{program.duration_text}</dd></div>
+            {price && <div><dt>Precio de lanzamiento</dt><dd>{price}</dd></div>}
+          </dl>
+        </div>
+        {program.benefits.length > 0 && <div class="stack benefits">
+          <h3>Beneficios del programa</h3>
+          <ul>{program.benefits.map(benefit => <li>{benefit}</li>)}</ul>
+        </div>}
+        <div id="inscripcion" class="stack registration">
+          <h3>Inscripción</h3>
+          <p class="copy">{program.registration_text}</p>
+          <a class="button primary" href={program.registration_url}>Solicitar inscripción</a>
+        </div>
+      </div>
     </section>
   )}
+
+  <section id="comentarios" class="band alt" aria-labelledby="t-comentarios">
+    <div class="shell stack">
+      <p class="kicker">Comentarios</p>
+      <h2 id="t-comentarios">Lo que dicen nuestros alumnos</h2>
+      {testimonials.length > 0 ? (
+        <div class="cards three">
+          {testimonials.map(t => (
+            <figure class="card quote">
+              <blockquote>“{t.text}”</blockquote>
+              <figcaption><strong>{t.name}</strong><span>{t.role}</span></figcaption>
+            </figure>
+          ))}
+        </div>
+      ) : (
+        <div class="card invite">
+          <h3>Tu opinión construye esta academia</h3>
+          <p>Estamos abriendo el campus. Si participas en la formación, tu experiencia aparecerá aquí.</p>
+          {whatsappUrl && <a class="button primary" href={whatsappUrl} target="_blank" rel="noopener noreferrer">Escríbenos por WhatsApp</a>}
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section class="band cta" aria-labelledby="t-cta">
+    <div class="shell stack centered">
+      <h2 id="t-cta">¿Listo para empezar?</h2>
+      <p class="lead">Ingresa al campus con tu cuenta de Google autorizada o escríbenos para más información.</p>
+      <div class="hero-actions">
+        <a class="button hero-action" href="/ingresar">Acceder al campus</a>
+        {whatsappUrl && <a class="button outline" href={whatsappUrl} target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a>}
+      </div>
+    </div>
+  </section>
 </BaseLayout>
 <style>
-  .hero { background: var(--navy); color: var(--white); }
-  .hero-content { display: grid; grid-template-columns: 1.07fr .93fr; align-items: center; gap: clamp(2rem, 5vw, 5rem); padding-block: clamp(4rem, 9vw, 8rem); }
+  .hero { background: radial-gradient(1200px 500px at 85% -10%, #0e3560 0%, transparent 60%), var(--navy); color: var(--white); }
+  .hero-content { display: grid; grid-template-columns: 1.07fr .93fr; align-items: center; gap: clamp(2rem, 5vw, 5rem); padding-block: clamp(4.5rem, 10vw, 9rem); }
+  .hero h1 { font-family: ui-serif, Georgia, 'Times New Roman', serif; font-weight: 600; letter-spacing: -.03em; }
   .hero .kicker { color: var(--cyan); }
-  .intro { color: #c9d7e6; font-size: 1.125rem; }
+  .intro { color: #c9d7e6; font-size: 1.15rem; }
   .hero-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
   .hero-action { background: var(--cyan); color: var(--navy); }
   .hero-action:hover { background: var(--white); }
@@ -78,18 +153,61 @@ const price = program?.launch_price != null && program.currency
   .geometry::before { inset: 15% 0 0 15%; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
   .geometry::after { inset: 34% 15% 0 34%; background: #0e3560; border-top: 1px solid var(--blue); border-left: 1px solid var(--blue); }
   .geometry span { z-index: 1; inset: 53% 0 0 53%; border-top: 1px solid var(--cyan); border-left: 1px solid var(--cyan); }
+
+  .band { padding-block: clamp(3.5rem, 8vw, 6.5rem); }
+  .band.alt { background: var(--light); }
+  .band.dark { background: var(--navy); color: var(--white); }
+  .band.dark .kicker { color: var(--cyan); }
+  .band h2 { font-family: ui-serif, Georgia, 'Times New Roman', serif; font-weight: 600; letter-spacing: -.02em; max-width: 24ch; }
+  .lead { font-size: 1.1rem; color: var(--muted); }
+  .band.dark .lead, .band.dark p { color: #c9d7e6; }
+
+  .about { display: grid; grid-template-columns: 1.2fr .8fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+  .stats { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+  .stats li { border-left: 3px solid var(--cyan); padding: .4rem 0 .4rem 1.25rem; display: grid; }
+  .stats strong { font-family: ui-serif, Georgia, serif; font-size: 2rem; color: var(--navy); }
+  .stats span { color: var(--muted); }
+
+  .cards { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem; margin-top: 1rem; }
+  .cards.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .card { background: var(--white); border: 1px solid var(--line); border-radius: 8px; padding: 1.75rem; display: grid; gap: .75rem; align-content: start; transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 14px 34px rgb(7 27 53 / .1); border-color: var(--cyan); }
+  .icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 12px; background: var(--navy); color: var(--cyan); }
+  .card h3 { font-size: 1.15rem; }
+  .card p { color: var(--muted); }
+  .quote { margin: 0; }
+  .quote blockquote { margin: 0; font-family: ui-serif, Georgia, serif; font-size: 1.1rem; }
+  .quote figcaption { display: grid; color: var(--muted); font-size: .9rem; }
+  .invite { width: 100%; max-width: 44rem; justify-items: start; }
+
+  .vision { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+  .values { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
+  .values li { border-top: 1px solid #30455d; padding-top: 1rem; }
+  .values h3 { color: var(--cyan); margin-bottom: .25rem; }
+
   .overview { gap: 3rem; }
-  .formation, .benefits, .registration { width: 100%; }
-  .formation { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
+  .formation { width: 100%; display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
   dl { margin: 0; display: grid; gap: 1rem; }
   dl div, .benefits { border-top: 1px solid var(--line); padding-top: 1rem; }
   dt { color: var(--muted); }
   dd { margin: .2rem 0 0; font-size: 1.2rem; font-weight: 750; }
+  .benefits { width: 100%; }
   .benefits ul { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: .75rem 3rem; margin: 0; padding-left: 1.25rem; }
-  .registration { background: var(--light); border-left: 3px solid var(--blue); padding: clamp(1.25rem, 4vw, 2.5rem); }
+  .registration { width: 100%; background: var(--light); border-left: 3px solid var(--blue); padding: clamp(1.25rem, 4vw, 2.5rem); }
   .copy { white-space: pre-line; }
+
+  .cta { background: radial-gradient(900px 400px at 15% 110%, #0e3560 0%, transparent 60%), var(--navy); color: var(--white); }
+  .cta .lead { color: #c9d7e6; }
+  .centered { justify-items: center; text-align: center; }
+  .centered h2 { max-width: none; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-copy { animation: rise .8s ease both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  }
+  @media (max-width: 64rem) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cards.three { grid-template-columns: 1fr; } }
   @media (max-width: 48rem) {
-    .hero-content, .formation, .benefits ul { grid-template-columns: 1fr; }
+    .hero-content, .about, .vision, .formation, .benefits ul, .cards { grid-template-columns: 1fr; }
     .geometry { display: none; }
   }
 </style>
