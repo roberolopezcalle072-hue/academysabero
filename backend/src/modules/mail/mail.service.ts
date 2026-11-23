@@ -61,6 +61,42 @@ export class MailService {
     });
   }
 
+  // ---------------- Consultas del campus ----------------
+  /** Aviso al administrador: al pulsar "Responder" en el correo, la respuesta va directo al alumno. */
+  adminInquiry(input: { key: string; name: string; email: string; subject: string; body: string; createdAt: string }) {
+    return this.deliver({
+      to: [this.admin],
+      subject: `Consulta de ${input.name}: ${input.subject}`.replace(/[\r\n<>]+/g, ' ').slice(0, 150),
+      idempotencyKey: `consulta-admin-${input.key}`,
+      replyTo: input.email,
+      ...this.render({
+        title: 'Nueva consulta de un alumno',
+        intro: 'Un alumno escribió desde el campus. Puedes responder a este correo y le llegará directamente a él.',
+        rows: [['Alumno', input.name], ['Correo', input.email], ['Fecha', dateTime(input.createdAt)], ['Asunto', input.subject]],
+        blocks: [['Mensaje', input.body]],
+        buttons: [['Responder por correo', `mailto:${encodeURIComponent(input.email)}?subject=${encodeURIComponent('Re: ' + input.subject)}`]],
+        note: '',
+      }),
+    });
+  }
+
+  inquiryReceived(input: { key: string; to: string; name: string; subject: string; body: string }) {
+    return this.deliver({
+      to: [input.to],
+      subject: 'Recibimos tu consulta',
+      idempotencyKey: `consulta-${input.key}`,
+      replyTo: this.admin,
+      ...this.render({
+        title: 'Recibimos tu consulta',
+        intro: `Hola ${esc(input.name)}, tu mensaje llegó al equipo de SABERO Academy. Te responderemos a este correo lo antes posible.`,
+        rows: [['Asunto', input.subject]],
+        blocks: [['Tu mensaje', input.body]],
+        buttons: [['Ir a mi campus', `${this.site}/campus/consultas`]],
+        note: '',
+      }),
+    });
+  }
+
   // ---------------- Libro de Reclamaciones ----------------
   complaintReceived(input: { to: string; code: string; kind: string; name: string; service: string; detail: string; request: string; createdAt: string }) {
     const kind = input.kind === 'queja' ? 'queja' : 'reclamo';

@@ -26,85 +26,141 @@ const messages = new Map([
   ['servicio', 'No se pudo guardar la contraseña. Inténtalo de nuevo.'],
 ]);
 const message = state ? messages.get(state) : undefined;
+const shown = name || email.split('@')[0] || 'Mi cuenta';
+const initial = shown.charAt(0).toUpperCase();
+const statusText: Record<string, string> = { paid: 'Pagado', refunded: 'Reembolsado', pending: 'Pendiente', failed: 'No completado' };
 Astro.response.headers.set('Cache-Control', 'private, no-store');
 ---
 <BaseLayout title="Mi perfil" privatePage dark>
   <div class="dk">
     <section class="shell page profile">
-      <div class="stack compact head">
-        <p class="kicker">Mi cuenta</p>
-        <h1 class="panel-title">Mi perfil</h1>
-      </div>
+      <header class="hero">
+        <span class="avatar" aria-hidden="true">{initial}</span>
+        <div class="who">
+          <p class="eyebrow">Mi cuenta</p>
+          <h1>{shown}</h1>
+          <p class="mail">{email}</p>
+          <p class="badges">
+            {hasPassword && <span class="chip">Correo y contraseña</span>}
+            {viaGoogle && <span class="chip">Google</span>}
+          </p>
+        </div>
+        <a class="btn ghost" href="/campus">Ir al campus →</a>
+      </header>
 
-      <div class="grid">
-        <div class="dk-card box">
-          <h2>Mis datos</h2>
-          <dl>
-            {name && <div><dt>Nombre</dt><dd>{name}</dd></div>}
-            <div><dt>Correo</dt><dd>{email}</dd></div>
-            <div><dt>Acceso</dt><dd>{[hasPassword && 'Correo y contraseña', viaGoogle && 'Google'].filter(Boolean).join(' · ') || '—'}</dd></div>
-          </dl>
+      <div class="cols">
+        <div class="col">
+          <article class="card">
+            <h2>Mis datos</h2>
+            <dl>
+              {name && <div><dt>Nombre</dt><dd>{name}</dd></div>}
+              <div><dt>Correo</dt><dd>{email}</dd></div>
+              <div><dt>Acceso</dt><dd>{[hasPassword && 'Correo y contraseña', viaGoogle && 'Google'].filter(Boolean).join(' · ') || '—'}</dd></div>
+            </dl>
+          </article>
+
+          <article class="card">
+            <h2>{hasPassword ? 'Cambiar contraseña' : 'Crear una contraseña'}</h2>
+            {!hasPassword && <p class="hint">Entras con Google. Si quieres, crea también una contraseña para entrar con tu correo.</p>}
+            {ok && <p class="notice okmsg" role="status">Tu contraseña se actualizó correctamente.</p>}
+            {message && <p class="notice badmsg" role="alert">{message}</p>}
+            <form action="/auth/cambiar-clave" method="post">
+              {hasPassword && (
+                <>
+                  <label for="current">Contraseña actual</label>
+                  <input id="current" name="current" type="password" maxlength="200" autocomplete="current-password" required />
+                </>
+              )}
+              <label for="password">Nueva contraseña <small>(mínimo 8 caracteres)</small></label>
+              <input id="password" name="password" type="password" minlength="8" maxlength="72" autocomplete="new-password" required />
+              <label for="confirm">Repite la nueva contraseña</label>
+              <input id="confirm" name="confirm" type="password" minlength="8" maxlength="72" autocomplete="new-password" required />
+              <button class="btn primary">Guardar contraseña</button>
+            </form>
+            <p class="hint">¿No recuerdas tu contraseña actual? {whatsappUrl ? <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">Escríbenos por WhatsApp</a> : 'Escríbenos'} y te la restablecemos.</p>
+          </article>
         </div>
 
-        {payments.length > 0 && (
-          <div class="dk-card box wide-box">
-            <h2>Mis pagos</h2>
+        <article class="card payments">
+          <h2>Mis pagos</h2>
+          {payments.length > 0 ? (
             <ul class="pays">
               {payments.map((p) => (
                 <li>
-                  <div><strong>{p.course_name}</strong><small>{p.paid_at ? fmtDate(p.paid_at) : fmtDate(p.created_at)} · {p.status === 'paid' ? 'Pagado' : 'Reembolsado'}</small></div>
+                  <div class="info">
+                    <strong>{p.course_name}</strong>
+                    <small>{p.paid_at ? fmtDate(p.paid_at) : fmtDate(p.created_at)}</small>
+                  </div>
+                  <span class={`chip st-${p.status}`}>{statusText[p.status] ?? p.status}</span>
                   <span class="amt">{moneyIn(p.amount, p.currency)}</span>
-                  {p.status === 'paid' && <a class="dk-btn ghost" href={`/cuenta/comprobante/${p.payment_id}`}>Constancia</a>}
+                  {p.status === 'paid' && <a class="btn ghost small" href={`/cuenta/comprobante/${p.payment_id}`}>Constancia</a>}
                 </li>
               ))}
             </ul>
-          </div>
-        )}
-
-        <div class="dk-card box">
-          <h2>{hasPassword ? 'Cambiar contraseña' : 'Crear una contraseña'}</h2>
-          {!hasPassword && <p class="hint">Entras con Google. Si quieres, crea también una contraseña para entrar con tu correo.</p>}
-          {ok && <p class="notice okmsg" role="status">Tu contraseña se actualizó correctamente.</p>}
-          {message && <p class="notice" role="status">{message}</p>}
-          <form action="/auth/cambiar-clave" method="post" class="full">
-            {hasPassword && (
-              <>
-                <label for="current">Contraseña actual</label>
-                <input id="current" name="current" type="password" maxlength="200" autocomplete="current-password" required />
-              </>
-            )}
-            <label for="password">Nueva contraseña <small>(mínimo 8 caracteres)</small></label>
-            <input id="password" name="password" type="password" minlength="8" maxlength="72" autocomplete="new-password" required />
-            <label for="confirm">Repite la nueva contraseña</label>
-            <input id="confirm" name="confirm" type="password" minlength="8" maxlength="72" autocomplete="new-password" required />
-            <button class="dk-btn wide">Guardar contraseña</button>
-          </form>
-          <p class="hint">¿No recuerdas tu contraseña actual? {whatsappUrl ? <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">Escríbenos por WhatsApp</a> : 'Escríbenos'} y te la restablecemos.</p>
-        </div>
+          ) : (
+            <div class="empty">
+              <p class="big">Aún no tienes pagos</p>
+              <p class="hint">Cuando completes la compra de un curso, aquí verás tu constancia de pago.</p>
+            </div>
+          )}
+        </article>
       </div>
     </section>
   </div>
 </BaseLayout>
 
 <style>
-  .profile { display: grid; gap: 1.25rem; padding-block: clamp(2rem, 4vw, 3.5rem); }
-  .grid { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 1.25rem; align-items: start; }
-  .box { padding: clamp(1.25rem, 3vw, 2rem); display: grid; gap: .8rem; }
-  .box h2 { font-size: 1.3rem; letter-spacing: -.02em; }
-  dl { margin: 0; display: grid; gap: .9rem; }
-  dt { color: #8aa0c6; font-size: .8rem; }
-  dd { margin: .1rem 0 0; color: #fff; font-weight: 600; }
-  .full { display: grid; gap: .55rem; }
-  label { font-weight: 600; font-size: .88rem; }
-  label small { font-weight: 400; color: #8aa0c6; }
-  .wide { width: 100%; margin-top: .4rem; }
-  .hint { color: #aebfdc; font-size: .88rem; }
-  .okmsg { background: rgb(47 211 122 / .12); border-color: #1f9a5b; }
-  .wide-box { grid-column: 1 / -1; }
-  .pays { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
-  .pays li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-top: 1px solid #243f7e; padding-top: .7rem; }
-  .pays small { display: block; color: #8aa0c6; }
-  .amt { color: #ffd54a; font-weight: 800; }
-  .pays .dk-btn { min-height: 38px; padding: .4rem 1.1rem; }
-  @media (max-width: 52rem) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .profile { display: grid; gap: 1.6rem; align-content: start; padding-block: clamp(2rem, 4vw, 3rem); }
+  .hero { display: flex; align-items: center; gap: 1.2rem; padding-bottom: 1.4rem; border-bottom: 1px solid rgb(255 255 255 / .08); }
+  .avatar { flex: none; display: grid; place-items: center; width: 4.2rem; height: 4.2rem; border-radius: 50%; font-size: 1.7rem; font-weight: 700; color: #fff; background: linear-gradient(135deg, #3b9bff, #1c4fd0); box-shadow: 0 10px 28px -10px rgb(47 123 255 / .8), inset 0 1px 0 rgb(255 255 255 / .35); }
+  .who { flex: 1; min-width: 0; }
+  .eyebrow { margin: 0 0 .25rem; font-size: .72rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #5cc8ff; }
+  h1 { margin: 0; font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 700; letter-spacing: -.01em; }
+  .mail { margin: .2rem 0 0; color: #93a8d0; font-size: .92rem; }
+  .badges { margin: .6rem 0 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+  .chip { font-size: .72rem; font-weight: 700; padding: .2rem .65rem; border-radius: 999px; border: 1px solid rgb(255 255 255 / .16); color: #dbe7ff; background: rgb(255 255 255 / .04); }
+  .chip.st-paid { background: rgb(53 208 127 / .14); border-color: rgb(53 208 127 / .45); color: #8ff0bb; }
+  .chip.st-refunded, .chip.st-pending { background: rgb(255 193 70 / .12); border-color: rgb(255 193 70 / .4); color: #ffd98a; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: .6rem 1.25rem; border-radius: 10px; font: inherit; font-weight: 600; font-size: .9rem; text-decoration: none; cursor: pointer; border: 0; transition: filter .15s, background .15s; }
+  .btn.primary { margin-top: .5rem; color: #fff; background: linear-gradient(180deg, #3b9bff, #1c63ea); box-shadow: 0 8px 22px -8px rgb(47 123 255 / .8); }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.ghost { color: #e6eeff; border: 1px solid rgb(255 255 255 / .16); background: rgb(255 255 255 / .04); }
+  .btn.ghost:hover { background: rgb(255 255 255 / .09); }
+  .btn.small { min-height: 36px; padding: .4rem 1rem; font-size: .84rem; }
+  .cols { display: grid; grid-template-columns: minmax(0, 26rem) minmax(0, 1fr); gap: 1.4rem; align-items: start; }
+  .col { display: grid; gap: 1.4rem; }
+  .card { border: 1px solid rgb(255 255 255 / .09); border-radius: 18px; padding: 1.4rem 1.5rem; background: linear-gradient(180deg, rgb(255 255 255 / .045), rgb(255 255 255 / .02)); box-shadow: 0 18px 40px -28px rgb(0 0 0 / .8); display: grid; gap: .85rem; align-content: start; }
+  h2 { margin: 0; font-size: 1.05rem; font-weight: 650; }
+  dl { margin: 0; display: grid; gap: 0; }
+  dl > div { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: .8rem; padding: .7rem 0; border-top: 1px solid rgb(255 255 255 / .07); }
+  dl > div:first-child { border-top: 0; }
+  dt { color: #7f95bf; font-size: .82rem; }
+  dd { margin: 0; color: #fff; font-weight: 500; font-size: .92rem; overflow-wrap: anywhere; }
+  form { display: grid; gap: .45rem; }
+  label { font-size: .78rem; font-weight: 600; letter-spacing: .03em; color: #9db2d8; margin-top: .35rem; }
+  label small { font-weight: 400; color: #6f87b8; }
+  input { width: 100%; font: inherit; font-size: .93rem; color: #fff; background: rgb(3 10 34 / .55); border: 1px solid rgb(255 255 255 / .14); border-radius: 10px; padding: .65rem .8rem; }
+  input:focus { outline: none; border-color: #3b9bff; box-shadow: 0 0 0 3px rgb(59 155 255 / .2); }
+  .hint { margin: 0; color: #8fa6d1; font-size: .85rem; line-height: 1.5; }
+  .hint a { color: #8ec5ff; }
+  .notice { margin: 0; }
+  .okmsg { background: rgb(53 208 127 / .1); border-color: rgb(53 208 127 / .45); color: #c9f5de; }
+  .badmsg { background: rgb(255 90 90 / .1); border-color: rgb(255 120 120 / .5); color: #ffd6d6; }
+  .pays { list-style: none; margin: 0; padding: 0; }
+  .pays li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: .8rem; align-items: center; padding: .95rem 0; border-top: 1px solid rgb(255 255 255 / .07); }
+  .pays li:first-child { border-top: 0; padding-top: .2rem; }
+  .info strong { display: block; font-weight: 600; color: #fff; }
+  .info small { color: #7f95bf; font-size: .8rem; }
+  .amt { font-weight: 700; color: #fff; white-space: nowrap; }
+  .empty { text-align: center; padding: 2rem 1rem; }
+  .big { margin: 0 0 .4rem; font-size: 1.02rem; font-weight: 650; color: #fff; }
+  @media (max-width: 62rem) { .cols { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 40rem) {
+    .hero { flex-wrap: wrap; }
+    .hero .btn { width: 100%; }
+    .card { padding: 1.15rem; border-radius: 16px; }
+    .pays li { grid-template-columns: minmax(0, 1fr) auto; }
+    .pays .chip { justify-self: start; }
+    dl > div { grid-template-columns: 5rem minmax(0, 1fr); }
+  }
 </style>

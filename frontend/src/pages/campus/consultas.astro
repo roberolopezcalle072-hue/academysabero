@@ -10,7 +10,8 @@ if (!token) return Astro.redirect('/ingresar', 303);
 if (Astro.locals.member?.role !== 'student') return Astro.redirect('/campus', 303);
 const pageParam = Astro.url.searchParams.get('page') ?? '1';
 const page = /^[1-9]\d{0,5}$/.test(pageParam) ? Number(pageParam) : 1;
-let message = Astro.url.searchParams.get('enviada') === '1' ? 'Consulta enviada.' : '';
+let sent = Astro.url.searchParams.get('enviada') === '1';
+let error = '';
 let subject = '';
 let body = '';
 
@@ -22,58 +23,134 @@ if (Astro.request.method === 'POST') {
   const response = await sendInquiry(token, subject, body).catch(() => null);
   if (response?.ok) return Astro.redirect('/campus/consultas?enviada=1', 303);
   Astro.response.status = response?.status ?? 503;
-  message = response?.status === 400 ? 'Revisa el asunto y el mensaje.' : 'No se pudo enviar la consulta.';
+  error = response?.status === 400 ? 'Revisa el asunto y el mensaje.' : 'No se pudo enviar la consulta. Inténtalo de nuevo.';
 }
 
 const result = await loadInquiries(token, page);
 const data = result.status === 'ok' ? result.value : null;
 if (!data && Astro.response.status === 200) Astro.response.status = 503;
-const status = { open: 'Abierta', answered: 'Respondida', closed: 'Cerrada' };
+const status = { open: 'Abierta', answered: 'Respondida', closed: 'Cerrada' } as const;
 ---
 <BaseLayout title="Consultas" privatePage dark>
   <div class="dk campus">
   <CampusNavigation />
-  <div class="shell page stack inquiries">
-    <h1 class="panel-title">Consultas</h1>
-    {message && <p class="notice" role="status">{message}</p>}
-    <section class="stack">
-      <h2>Nueva consulta</h2>
-      <form action="/campus/consultas" method="post" class="stack compact">
-        <label for="subject">Asunto</label>
-        <input id="subject" name="subject" maxlength="160" value={subject} required />
-        <label for="message">Mensaje</label>
-        <textarea id="message" name="body" minlength="1" maxlength="5000" rows="5" required>{body}</textarea>
-        <button class="button primary">Enviar consulta</button>
-      </form>
-    </section>
-    <section class="stack history">
-      <h2>Historial</h2>
-      {data ? (
-        data.items.length ? data.items.map(item => <article class="stack compact inquiry">
-          <div class="stack compact"><h3>{item.subject}</h3><p class="meta">{status[item.status]} · <time datetime={item.created_at}>{dateTime(item.created_at)}</time></p></div>
-          <p class="copy">{item.body}</p>
-          {item.academy_inquiry_replies.map(reply => <blockquote>
-            <p class="meta">Administración · <time datetime={reply.created_at}>{dateTime(reply.created_at)}</time></p>
-            <p class="copy">{reply.body}</p>
-          </blockquote>)}
-        </article>) : <p>No hay consultas en esta página.</p>
-      ) : <p role="status">No se pudo cargar el historial.</p>}
-      {(page > 1 || data?.hasNext) && <nav aria-label="Paginación de consultas">
-        {page > 1 && <a href={`/campus/consultas?page=${page - 1}`}>Anterior</a>}
-        {data?.hasNext && <a href={`/campus/consultas?page=${page + 1}`}>Siguiente</a>}
-      </nav>}
-    </section>
+  <div class="shell page ask">
+    <header class="top">
+      <p class="eyebrow">Soporte del curso</p>
+      <h1>Consultas</h1>
+      <p class="lead">Escríbenos tus dudas sobre las clases o la configuración de tu agente. Te respondemos por aquí y a tu correo.</p>
+    </header>
+
+    {sent && <p class="notice ok" role="status">Consulta enviada. Te responderemos lo antes posible; también te enviamos una copia a tu correo.</p>}
+    {error && <p class="notice bad" role="alert">{error}</p>}
+
+    <div class="layout">
+      <section class="card compose" aria-labelledby="nueva">
+        <h2 id="nueva">Nueva consulta</h2>
+        <form action="/campus/consultas" method="post">
+          <label for="subject">Asunto</label>
+          <input id="subject" name="subject" maxlength="160" value={subject} placeholder="Ej.: Duda sobre la clase 3" required />
+          <label for="message">Mensaje</label>
+          <textarea id="message" name="body" maxlength="5000" rows="7" placeholder="Cuéntanos con detalle qué necesitas…" required>{body}</textarea>
+          <p class="counter"><span id="count">0</span> / 5000</p>
+          <button class="btn">Enviar consulta</button>
+        </form>
+        <ul class="tips">
+          <li>Indica el número de clase o el paso donde te quedaste.</li>
+          <li>Si hay un error, copia el mensaje tal como aparece.</li>
+        </ul>
+      </section>
+
+      <section class="history" aria-labelledby="hist">
+        <h2 id="hist">Historial</h2>
+        {data ? (
+          data.items.length ? (
+            <ol>
+              {data.items.map((item) => (
+                <li class="card thread">
+                  <div class="row">
+                    <h3>{item.subject}</h3>
+                    <span class={`chip ${item.status}`}>{status[item.status]}</span>
+                  </div>
+                  <p class="meta"><time datetime={item.created_at}>{dateTime(item.created_at)}</time></p>
+                  <p class="copy">{item.body}</p>
+                  {item.academy_inquiry_replies.map((reply) => (
+                    <div class="reply">
+                      <p class="who"><span class="avatar">S</span>Equipo SABERO · <time datetime={reply.created_at}>{dateTime(reply.created_at)}</time></p>
+                      <p class="copy">{reply.body}</p>
+                    </div>
+                  ))}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div class="card empty">
+              <p class="big">Aún no has enviado consultas</p>
+              <p class="soft">Cuando escribas una, aquí verás su estado y la respuesta del equipo.</p>
+            </div>
+          )
+        ) : <p class="notice" role="status">No se pudo cargar el historial.</p>}
+        {(page > 1 || data?.hasNext) && (
+          <nav class="pager" aria-label="Paginación de consultas">
+            {page > 1 && <a href={`/campus/consultas?page=${page - 1}`}>← Anterior</a>}
+            {data?.hasNext && <a href={`/campus/consultas?page=${page + 1}`}>Siguiente →</a>}
+          </nav>
+        )}
+      </section>
+    </div>
   </div>
   </div>
 </BaseLayout>
+<script>
+  const text = document.getElementById('message') as HTMLTextAreaElement | null;
+  const count = document.getElementById('count');
+  const update = () => { if (text && count) count.textContent = String(text.value.length); };
+  text?.addEventListener('input', update);
+  update();
+</script>
 <style>
-  .inquiries { gap: 2rem; }
-  form, .history, .inquiry { width: 100%; }
-  form { max-width: 42rem; }
-  input, textarea { width: 100%; }
-  textarea { font: inherit; border: 1px solid #7a94ae; border-radius: var(--radius); padding: .55rem .65rem; }
-  .history, .inquiry { border-top: 1px solid var(--line); padding-top: 1rem; }
-  .meta { color: var(--muted); font-size: .9rem; }
-  .copy { white-space: pre-wrap; overflow-wrap: anywhere; }
-  blockquote { margin: 0; padding: .75rem 1rem; background: var(--light); border-left: 2px solid var(--blue); }
+  .ask { display: grid; gap: 1.4rem; align-content: start; }
+  .eyebrow { margin: 0 0 .4rem; font-size: .72rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #5cc8ff; }
+  h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: -.01em; }
+  .lead { margin: .5rem 0 0; color: #93a8d0; font-size: .95rem; max-width: 46rem; }
+  .notice { margin: 0; }
+  .notice.ok { border-color: rgb(53 208 127 / .45); background: rgb(53 208 127 / .1); color: #c9f5de; }
+  .notice.bad { border-color: rgb(255 120 120 / .5); background: rgb(255 90 90 / .1); color: #ffd6d6; }
+  .layout { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); gap: 1.4rem; align-items: start; }
+  .card { border: 1px solid rgb(255 255 255 / .09); border-radius: 18px; padding: 1.4rem 1.5rem; background: linear-gradient(180deg, rgb(255 255 255 / .045), rgb(255 255 255 / .02)); box-shadow: 0 18px 40px -28px rgb(0 0 0 / .8); }
+  h2 { margin: 0 0 1rem; font-size: 1.05rem; font-weight: 650; }
+  .compose { position: sticky; top: 1rem; }
+  form { display: grid; gap: .45rem; }
+  label { font-size: .78rem; font-weight: 600; letter-spacing: .04em; color: #9db2d8; margin-top: .4rem; }
+  input, textarea { width: 100%; font: inherit; font-size: .93rem; color: #fff; background: rgb(3 10 34 / .55); border: 1px solid rgb(255 255 255 / .14); border-radius: 10px; padding: .65rem .8rem; }
+  input::placeholder, textarea::placeholder { color: #667ca6; }
+  input:focus, textarea:focus { outline: none; border-color: #3b9bff; box-shadow: 0 0 0 3px rgb(59 155 255 / .2); }
+  textarea { resize: vertical; min-height: 9rem; }
+  .counter { margin: 0; text-align: right; font-size: .75rem; color: #6f87b8; }
+  .btn { margin-top: .4rem; min-height: 44px; border: 0; border-radius: 10px; font: inherit; font-weight: 600; font-size: .92rem; color: #fff; cursor: pointer; background: linear-gradient(180deg, #3b9bff, #1c63ea); box-shadow: 0 8px 22px -8px rgb(47 123 255 / .8); }
+  .btn:hover { filter: brightness(1.08); }
+  .tips { margin: 1.1rem 0 0; padding: 1rem 0 0 1.1rem; border-top: 1px solid rgb(255 255 255 / .08); color: #8fa6d1; font-size: .83rem; display: grid; gap: .3rem; }
+  .history h2 { margin-bottom: .9rem; }
+  ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+  .row { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
+  h3 { margin: 0; font-size: 1.02rem; font-weight: 650; line-height: 1.35; }
+  .chip { flex: none; font-size: .72rem; font-weight: 700; padding: .2rem .65rem; border-radius: 999px; border: 1px solid rgb(255 255 255 / .16); color: #dbe7ff; }
+  .chip.answered { background: rgb(53 208 127 / .14); border-color: rgb(53 208 127 / .45); color: #8ff0bb; }
+  .chip.open { background: rgb(255 193 70 / .12); border-color: rgb(255 193 70 / .4); color: #ffd98a; }
+  .meta { margin: .3rem 0 0; font-size: .8rem; color: #7f95bf; }
+  .copy { margin: .8rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: #d2def5; line-height: 1.55; font-size: .93rem; }
+  .reply { margin-top: 1rem; padding: 1rem 1.1rem; border-radius: 12px; background: rgb(47 123 255 / .1); border: 1px solid rgb(47 149 255 / .25); }
+  .who { display: flex; align-items: center; gap: .55rem; margin: 0; font-size: .8rem; color: #9fc7ff; font-weight: 600; }
+  .avatar { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: #1c63ea; color: #fff; font-size: .72rem; font-weight: 700; }
+  .reply .copy { margin-top: .6rem; }
+  .empty { text-align: center; padding: 2.4rem 1.5rem; }
+  .big { margin: 0 0 .4rem; font-size: 1.05rem; font-weight: 650; color: #fff; }
+  .soft { margin: 0; color: #8fa6d1; font-size: .9rem; }
+  .pager { display: flex; justify-content: space-between; margin-top: 1rem; }
+  .pager a { color: #8ec5ff; text-decoration: none; font-weight: 600; font-size: .9rem; }
+  @media (max-width: 62rem) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .compose { position: static; }
+  }
+  @media (max-width: 40rem) { .card { padding: 1.15rem; border-radius: 16px; } }
 </style>

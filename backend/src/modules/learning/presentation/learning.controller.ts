@@ -3,6 +3,8 @@ import {
   Inject, NotFoundException, Param, ParseUUIDPipe, Post, Query, ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { MailService } from '../../mail/mail.service';
 import { ResolveAccess } from '../../access/application/resolve-access';
 import { bearerToken } from '../../access/presentation/bearer-token';
 import type { LearningRepository } from '../application/learning';
@@ -14,6 +16,7 @@ export class LearningController {
   constructor(
     @Inject(LEARNING_REPOSITORY) private readonly learning: LearningRepository,
     private readonly access: ResolveAccess,
+    private readonly mail: MailService,
   ) {}
 
   @Get('program')
@@ -65,8 +68,17 @@ export class LearningController {
     @Body('body') body: unknown,
   ) {
     const { token, member } = await this.authorize(authorization, true);
-    await this.learning.createInquiry(token, member.id, requiredText(subject, 160), requiredText(body, 5000))
-      .catch(providerError);
+    const cleanSubject = requiredText(subject, 160);
+    const cleanBody = requiredText(body, 5000);
+    await this.learning.createInquiry(token, member.id, cleanSubject, cleanBody).catch(providerError);
+
+    // Cada consulta le llega al administrador por correo (y el alumno recibe su copia). Si el correo falla, la consulta ya quedó guardada.
+    const who = studentFromToken(token);
+    if (who.email) {
+      const key = randomUUID();
+      void this.mail.adminInquiry({ key, name: who.name, email: who.email, subject: cleanSubject, body: cleanBody, createdAt: new Date().toISOString() });
+      void this.mail.inquiryReceived({ key, to: who.email, name: who.name, subject: cleanSubject, body: cleanBody });
+    }
     return { saved: true };
   }
 
@@ -78,6 +90,20 @@ export class LearningController {
       throw new ForbiddenException();
     }
     return { token, member: result.member };
+  }
+}
+
+/** Nombre y correo del alumno desde su sesión (el token ya fue verificado al autorizar la petición). */
+function studentFromToken(token: string): { name: string; email: string | null } {
+  try {
+    const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')) as
+      { email?: unknown; user_metadata?: { full_name?: unknown; name?: unknown } };
+    const email = typeof claims.email === 'string' && claims.email.includes('@') ? claims.email : null;
+    const meta = claims.user_metadata ?? {};
+    const named = [meta.full_name, meta.name].find((v): v is string => typeof v === 'string' && v.trim() !== '');
+    return { email, name: named?.trim() ?? email?.split('@')[0] ?? 'Alumno' };
+  } catch {
+    return { email: null, name: 'Alumno' };
   }
 }
 
