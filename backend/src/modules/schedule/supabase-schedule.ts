@@ -34,6 +34,25 @@ export class SupabaseSchedule {
     if (error) throw error;
   }
 
+  async materials(token: string): Promise<unknown> {
+    const { data, error } = await this.client(token).rpc('academy_course_materials', { p_course: null });
+    if (error) throw error;
+    return data;
+  }
+
+  async saveMaterial(token: string, v: { id: string | null; course: string; category: string; title: string; url: string; classNo: number | null; position: number }) {
+    const { data, error } = await this.client(token).rpc('academy_admin_save_material', {
+      p_id: v.id, p_course: v.course, p_category: v.category, p_title: v.title, p_url: v.url, p_class_no: v.classNo, p_position: v.position,
+    });
+    if (error) throw error;
+    return data as string;
+  }
+
+  async deleteMaterial(token: string, id: string) {
+    const { error } = await this.client(token).rpc('academy_admin_delete_material', { p_id: id });
+    if (error) throw error;
+  }
+
   async setDone(token: string, classId: string, done: boolean) {
     const { error } = await this.client(token).rpc('academy_set_class_done', { p_class: classId, p_done: done });
     if (error) throw error;

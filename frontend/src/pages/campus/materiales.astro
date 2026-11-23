@@ -1,0 +1,92 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import CampusNavigation from '../../features/learning/presentation/CampusNavigation.astro';
+import { loadMaterials, downloadUrl, longDate, MATERIAL_SECTIONS } from '../../features/schedule/schedule-api';
+
+const token = Astro.locals.accessToken;
+if (!token) return Astro.redirect('/ingresar', 303);
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const data = await loadMaterials(token);
+if (!data) Astro.response.status = Astro.locals.member ? 404 : 503;
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+---
+<BaseLayout title="Materiales" privatePage dark>
+  <div class="dk campus">
+  <CampusNavigation />
+  <div class="shell page mats">
+    <header class="top">
+      <p class="eyebrow">Material de estudio</p>
+      <h1>Materiales</h1>
+      <p class="lead">Descarga aquí los manuales y los prompts de cada clase. Los archivos están guardados en Google Drive.</p>
+    </header>
+
+    {data ? (
+      <>
+        {MATERIAL_SECTIONS.map((section) => {
+          const items = data.items.filter((i) => i.category === section.key);
+          return (
+            <section class="card" aria-label={section.title}>
+              <div class="head"><h2>{section.title}</h2><p>{section.text}</p></div>
+              {items.length === 0 ? (
+                <p class="empty">Todavía no hay materiales en esta sección. Los verás aquí cuando se publiquen.</p>
+              ) : (
+                <ul>
+                  {items.map((m) => {
+                    const dl = downloadUrl(m.url);
+                    return (
+                      <li class={m.locked ? 'locked' : ''}>
+                        <span class="ico" aria-hidden="true">PDF</span>
+                        <div class="info">
+                          <b>{m.title}</b>
+                          {m.class_no !== null && <small>Clase {m.class_no}{m.class_title ? ` · ${m.class_title}` : ''}{m.date ? ` · ${cap(longDate(m.date))}` : ''}</small>}
+                        </div>
+                        {m.locked ? (
+                          <span class="soon">{m.date ? `Disponible el ${longDate(m.date)}` : 'Se habilita cuando se abra la clase'}</span>
+                        ) : (
+                          <div class="actions">
+                            <a class="btn ghost" href={m.url ?? '#'} target="_blank" rel="noopener noreferrer">Abrir</a>
+                            {dl && <a class="btn primary" href={dl} rel="noopener noreferrer">Descargar</a>}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          );
+        })}
+      </>
+    ) : <p class="notice" role="status">Tus materiales aparecerán aquí cuando tengas un curso activo.</p>}
+  </div>
+  </div>
+</BaseLayout>
+<style>
+  .mats { display: grid; gap: 1.4rem; align-content: start; max-width: 64rem; }
+  .eyebrow { margin: 0 0 .4rem; font-size: .72rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #5cc8ff; }
+  h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: -.01em; }
+  .lead { margin: .5rem 0 0; color: #93a8d0; font-size: .95rem; max-width: 44rem; }
+  .card { border: 1px solid rgb(255 255 255 / .09); border-radius: 18px; padding: 1.4rem 1.5rem; background: linear-gradient(180deg, rgb(255 255 255 / .045), rgb(255 255 255 / .02)); box-shadow: 0 18px 40px -28px rgb(0 0 0 / .8); display: grid; gap: 1rem; }
+  .head h2 { margin: 0; font-size: 1.1rem; font-weight: 650; }
+  .head p { margin: .3rem 0 0; color: #8fa6d1; font-size: .88rem; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+  li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 1rem; align-items: center; padding: .85rem 1rem; border: 1px solid rgb(255 255 255 / .08); border-radius: 14px; background: rgb(255 255 255 / .025); }
+  li.locked { opacity: .7; }
+  .ico { display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 10px; font-size: .7rem; font-weight: 800; letter-spacing: .04em; color: #ffd98a; border: 1px solid rgb(255 193 70 / .4); background: rgb(255 193 70 / .1); }
+  .info { display: grid; gap: .15rem; min-width: 0; }
+  .info b { color: #fff; font-weight: 600; }
+  .info small { color: #8fa6d1; font-size: .8rem; }
+  .actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: .45rem 1.1rem; border-radius: 10px; font-weight: 600; font-size: .86rem; text-decoration: none; border: 1px solid transparent; }
+  .btn.primary { color: #fff; background: linear-gradient(180deg, #3b9bff, #1c63ea); box-shadow: 0 8px 22px -10px rgb(47 123 255 / .8); }
+  .btn.ghost { color: #e6eeff; border-color: rgb(255 255 255 / .16); background: rgb(255 255 255 / .04); }
+  .btn.ghost:hover { background: rgb(255 255 255 / .09); }
+  .soon { font-size: .82rem; color: #8fa6d1; text-align: right; }
+  .empty { margin: 0; padding: .8rem 1rem; border: 1px dashed rgb(255 255 255 / .15); border-radius: 12px; color: #8fa6d1; font-size: .9rem; }
+  @media (max-width: 40rem) {
+    .card { padding: 1.15rem; border-radius: 16px; }
+    li { grid-template-columns: auto minmax(0, 1fr); }
+    .actions, .soon { grid-column: 1 / -1; justify-content: flex-start; text-align: left; }
+    .actions .btn { flex: 1; }
+  }
+</style>

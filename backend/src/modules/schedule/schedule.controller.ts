@@ -37,6 +37,44 @@ export class ScheduleController {
     return data;
   }
 
+  /** Materiales del curso (Meta, Codex y prompts por clase): solo alumnos matriculados o administración. */
+  @Get('materials')
+  @Header('Cache-Control', 'private, no-store')
+  async materials(@Headers('authorization') authorization: string | undefined) {
+    const { token } = await this.member(authorization);
+    const data = await this.schedule.materials(token).catch(failure);
+    if (!data) throw new NotFoundException();
+    return data;
+  }
+
+  @Post('admin/materials')
+  @HttpCode(200)
+  @Header('Cache-Control', 'private, no-store')
+  async saveMaterial(@Headers('authorization') authorization: string | undefined, @Body() body: Record<string, unknown>) {
+    const token = await this.admin(authorization);
+    const { course, category, title, url } = body ?? {};
+    const id = body?.id === undefined || body.id === null || body.id === '' ? null : body.id;
+    if (typeof course !== 'string' || !UUID.test(course) || !['meta', 'codex', 'prompts'].includes(String(category))) throw new BadRequestException();
+    if (id !== null && (typeof id !== 'string' || !UUID.test(id))) throw new BadRequestException();
+    if (typeof title !== 'string' || !title.trim() || title.length > 160) throw new BadRequestException();
+    if (typeof url !== 'string' || url.length > 2048) throw new BadRequestException();
+    const classNo = body.classNo === undefined || body.classNo === null || body.classNo === '' ? null : Number(body.classNo);
+    if (classNo !== null && (!Number.isInteger(classNo) || classNo < 1 || classNo > 60)) throw new BadRequestException();
+    const position = body.position === undefined || body.position === '' ? 1 : Number(body.position);
+    if (!Number.isInteger(position) || position < 1 || position > 999) throw new BadRequestException();
+    const saved = await this.schedule.saveMaterial(token, { id, course, category: String(category), title, url, classNo, position }).catch(failure);
+    return { saved: true, id: saved };
+  }
+
+  @Post('admin/materials/:id/delete')
+  @HttpCode(200)
+  @Header('Cache-Control', 'private, no-store')
+  async deleteMaterial(@Headers('authorization') authorization: string | undefined, @Param('id', ParseUUIDPipe) id: string) {
+    const token = await this.admin(authorization);
+    await this.schedule.deleteMaterial(token, id).catch(failure);
+    return { saved: true };
+  }
+
   @Post('schedule/classes/:id/done')
   @HttpCode(200)
   @Header('Cache-Control', 'private, no-store')

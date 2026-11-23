@@ -193,3 +193,65 @@ const monthDay = new Intl.DateTimeFormat('es-PE', { day: 'numeric', month: 'shor
 /** "2026-12-15", "2026-12-21" -> "15 dic – 21 dic" */
 export const rangeLabel = (a: string | null, b: string | null) =>
   a && b ? `${monthDay.format(new Date(`${a}T12:00:00Z`)).replace(/\./g, '')} – ${monthDay.format(new Date(`${b}T12:00:00Z`)).replace(/\./g, '')}` : '';
+
+export type MaterialCategory = 'meta' | 'codex' | 'prompts';
+
+export interface MaterialItem {
+  id: string;
+  category: MaterialCategory;
+  title: string;
+  class_no: number | null;
+  position: number;
+  class_title: string | null;
+  date: string | null;
+  locked: boolean;
+  url: string | null;
+}
+
+export interface Materials {
+  course: { id: string; name: string };
+  admin: boolean;
+  classes: { class_no: number; title: string; date: string | null }[] | null;
+  items: MaterialItem[];
+}
+
+export const MATERIAL_SECTIONS: { key: MaterialCategory; title: string; text: string }[] = [
+  { key: 'meta', title: 'Configuración de Facebook (Meta)', text: 'Manual paso a paso para preparar tu empresa y WhatsApp en Meta.' },
+  { key: 'codex', title: 'Codex', text: 'Guías para preparar y usar Codex durante el curso.' },
+  { key: 'prompts', title: 'Prompts de desarrollo', text: 'Un PDF por clase, disponible cuando la clase se abre. Algunas clases no tienen prompts.' },
+];
+
+export async function loadMaterials(token: string): Promise<Materials | null> {
+  try {
+    const response = await apiRequest('/materials', token);
+    return response.ok ? await response.json() as Materials : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveMaterial(token: string, body: object): Promise<number> {
+  try {
+    return (await apiRequest('/admin/materials', token, body)).status;
+  } catch {
+    return 503;
+  }
+}
+
+export async function deleteMaterial(token: string, id: string): Promise<number> {
+  try {
+    return (await apiRequest(`/admin/materials/${encodeURIComponent(id)}/delete`, token, {})).status;
+  } catch {
+    return 503;
+  }
+}
+
+/** Enlace de descarga directa para archivos de Google Drive / Docs (si no se puede, devuelve null y solo se ofrece "Abrir"). */
+export function downloadUrl(url: string | null): string | null {
+  if (!url) return null;
+  const file = url.match(/drive\.google\.com\/file\/d\/([\w-]+)/) ?? url.match(/drive\.google\.com\/(?:open|uc)\?(?:[^#]*&)?id=([\w-]+)/);
+  if (file) return `https://drive.google.com/uc?export=download&id=${file[1]}`;
+  const doc = url.match(/docs\.google\.com\/(document|presentation|spreadsheets)\/d\/([\w-]+)/);
+  if (doc) return `https://docs.google.com/${doc[1]}/d/${doc[2]}/export?format=${doc[1] === 'spreadsheets' ? 'xlsx' : doc[1] === 'presentation' ? 'pptx' : 'pdf'}`;
+  return null;
+}

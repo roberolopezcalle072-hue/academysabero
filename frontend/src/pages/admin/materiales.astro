@@ -1,0 +1,154 @@
+---
+import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
+import { loadMaterials, saveMaterial, deleteMaterial, dayMonthDate, MATERIAL_SECTIONS, type MaterialItem } from '../../features/schedule/schedule-api';
+import { siteUrl } from '../../shared/config/server';
+
+const token = Astro.locals.accessToken;
+if (!token) return Astro.redirect('/ingresar', 303);
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+const text = (form: FormData, key: string) => String(form.get(key) ?? '');
+
+if (Astro.request.method === 'POST') {
+  if (Astro.request.headers.get('origin') !== siteUrl().origin) return new Response(null, { status: 403 });
+  const form = await Astro.request.formData();
+  const action = text(form, 'action');
+  const back = (status: number, anchor: string) => Astro.redirect(`/admin/materiales?${status === 200 ? 'guardado=1' : `error=${status}`}${anchor}`, 303);
+  if (action === 'save' && UUID.test(text(form, 'course'))) {
+    // Prompts con el enlace vacío = esa clase no tiene prompts: no hay nada que guardar.
+    if (text(form, 'category') === 'prompts' && !text(form, 'url').trim()) return back(200, '#prompts');
+    return back(await saveMaterial(token, {
+      id: text(form, 'id') || null, course: text(form, 'course'), category: text(form, 'category'), title: text(form, 'title'),
+      url: text(form, 'url'), classNo: text(form, 'classNo') || null, position: text(form, 'position') || 1,
+    }), `#${text(form, 'category')}`);
+  }
+  if (action === 'delete' && UUID.test(text(form, 'id'))) {
+    return back(await deleteMaterial(token, text(form, 'id')), `#${text(form, 'category')}`);
+  }
+  return back(400, '');
+}
+
+const data = await loadMaterials(token);
+if (!data) Astro.response.status = 503;
+const saved = Astro.url.searchParams.get('guardado') === '1';
+const error = Astro.url.searchParams.get('error');
+const errorText = error === '400'
+  ? 'No se guardó: pega un enlace de Google Drive o Google Docs (https://drive.google.com/…) y escribe un nombre.'
+  : error ? 'No se pudo guardar. Inténtalo de nuevo.' : '';
+const items = (key: string) => (data?.items ?? []).filter((i) => i.category === key);
+const promptFor = (classNo: number): MaterialItem | undefined => (data?.items ?? []).find((i) => i.category === 'prompts' && i.class_no === classNo);
+---
+<AdminLayout title="Materiales">
+  <div class="shell page stack mats">
+    <header class="top">
+      <p class="eyebrow">Administración</p>
+      <h1>Materiales del curso</h1>
+      <p class="lead">Sube tus archivos a tu carpeta de Google Drive, copia el enlace y pégalo aquí. Los alumnos matriculados podrán abrirlos y descargarlos desde su campus.</p>
+    </header>
+    {saved && <p class="notice" role="status">Guardado.</p>}
+    {errorText && <p class="notice bad" role="alert">{errorText}</p>}
+
+    {data ? (
+      <>
+        <p class="tip"><b>Importante:</b> en Drive, comparte cada archivo con «Cualquier persona con el enlace» (lector); si no, los alumnos no podrán abrirlo.</p>
+
+        {MATERIAL_SECTIONS.filter((s) => s.key !== 'prompts').map((section) => (
+          <section class="card" id={section.key}>
+            <div class="head"><h2>{section.title}</h2><p>{section.text}</p></div>
+            <ul>
+              {items(section.key).map((m) => (
+                <li>
+                  <form method="post" class="row">
+                    <input type="hidden" name="action" value="save" />
+                    <input type="hidden" name="course" value={data.course.id} />
+                    <input type="hidden" name="category" value={section.key} />
+                    <input type="hidden" name="id" value={m.id} />
+                    <label>Nombre<input name="title" value={m.title} maxlength="160" required /></label>
+                    <label>Enlace de Google Drive<input type="url" name="url" value={m.url ?? ''} maxlength="2048" required /></label>
+                    <label class="pos">Orden<input type="number" name="position" min="1" max="999" value={m.position} /></label>
+                    <button class="button primary">Guardar</button>
+                  </form>
+                  <form method="post" class="del">
+                    <input type="hidden" name="action" value="delete" />
+                    <input type="hidden" name="id" value={m.id} />
+                    <input type="hidden" name="category" value={section.key} />
+                    <button class="button secondary small">Quitar</button>
+                  </form>
+                </li>
+              ))}
+              {items(section.key).length === 0 && <li class="none">Todavía no hay materiales aquí.</li>}
+            </ul>
+            <form method="post" class="row add">
+              <input type="hidden" name="action" value="save" />
+              <input type="hidden" name="course" value={data.course.id} />
+              <input type="hidden" name="category" value={section.key} />
+              <label>Nombre<input name="title" maxlength="160" placeholder={section.key === 'meta' ? 'Manual de configuración de Facebook (Meta)' : 'Guía de Codex'} required /></label>
+              <label>Enlace de Google Drive<input type="url" name="url" maxlength="2048" placeholder="https://drive.google.com/file/d/…" required /></label>
+              <label class="pos">Orden<input type="number" name="position" min="1" max="999" value="1" /></label>
+              <button class="button primary">Agregar</button>
+            </form>
+          </section>
+        ))}
+
+        <section class="card" id="prompts">
+          <div class="head"><h2>Prompts de desarrollo</h2><p>Un PDF por clase. Deja el enlace vacío en las clases que no tengan prompts. Se habilita para los alumnos cuando la clase se abre.</p></div>
+          <ul class="prompts">
+            {(data.classes ?? []).map((c) => {
+              const m = promptFor(c.class_no);
+              return (
+                <li>
+                  <form method="post" class="row prow">
+                    <input type="hidden" name="action" value="save" />
+                    <input type="hidden" name="course" value={data.course.id} />
+                    <input type="hidden" name="category" value="prompts" />
+                    <input type="hidden" name="classNo" value={c.class_no} />
+                    <input type="hidden" name="title" value={`Prompts · Clase ${c.class_no}`} />
+                    <span class="cl"><b>Clase {c.class_no}</b><small>{c.title}{c.date ? ` · ${dayMonthDate(c.date)}` : ''}</small></span>
+                    <label class="grow"><span class="sr">Enlace de Drive de la clase {c.class_no}</span><input type="url" name="url" value={m?.url ?? ''} maxlength="2048" placeholder="Pega aquí el enlace del PDF (vacío = sin prompts)" required={false} /></label>
+                    <button class="button primary small">Guardar</button>
+                  </form>
+                  {m && (
+                    <form method="post" class="del">
+                      <input type="hidden" name="action" value="delete" />
+                      <input type="hidden" name="id" value={m.id} />
+                      <input type="hidden" name="category" value="prompts" />
+                      <button class="button secondary small">Quitar</button>
+                    </form>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      </>
+    ) : <p class="notice" role="status">No se pudieron cargar los materiales.</p>}
+  </div>
+</AdminLayout>
+<style>
+  .mats { display: grid; gap: 1.4rem; align-content: start; max-width: 70rem; }
+  .eyebrow { margin: 0 0 .35rem; font-size: .72rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #5cc8ff; }
+  h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: -.01em; }
+  .lead { margin: .5rem 0 0; color: #93a8d0; font-size: .95rem; max-width: 46rem; }
+  .tip { margin: 0; padding: .8rem 1rem; border-radius: 12px; border: 1px solid rgb(255 193 70 / .4); background: rgb(255 193 70 / .08); color: #ffe3a3; font-size: .9rem; }
+  .card { width: 100%; border: 1px solid rgb(255 255 255 / .09); border-radius: 18px; padding: 1.4rem 1.5rem; display: grid; gap: 1rem; background: linear-gradient(180deg, rgb(255 255 255 / .045), rgb(255 255 255 / .02)); box-shadow: 0 18px 40px -28px rgb(0 0 0 / .8); }
+  .head h2 { margin: 0; font-size: 1.1rem; font-weight: 650; }
+  .head p { margin: .3rem 0 0; color: #8fa6d1; font-size: .88rem; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+  li { display: flex; align-items: end; gap: .7rem; padding: .8rem; border: 1px solid rgb(255 255 255 / .08); border-radius: 14px; background: rgb(255 255 255 / .02); }
+  li.none { color: #8fa6d1; border-style: dashed; }
+  .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) 5rem auto; gap: .7rem; align-items: end; flex: 1; }
+  .row.add { padding-top: .4rem; border-top: 1px solid rgb(255 255 255 / .08); }
+  .row label { display: grid; gap: .3rem; font-size: .78rem; font-weight: 600; color: #9db2d8; }
+  .prow { grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) auto; }
+  .cl { display: grid; gap: .1rem; }
+  .cl b { color: #fff; }
+  .cl small { color: #8fa6d1; font-size: .78rem; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .del { flex: none; }
+  .button.small { min-height: 36px; padding: .3rem .9rem; font-size: .84rem; }
+  .notice.bad { border-color: rgb(255 120 120 / .5); background: rgb(255 90 90 / .1); color: #ffd6d6; }
+  @media (max-width: 62rem) {
+    .row, .prow { grid-template-columns: minmax(0, 1fr); }
+    li { flex-direction: column; align-items: stretch; }
+  }
+</style>
