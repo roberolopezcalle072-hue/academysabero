@@ -1,4 +1,5 @@
 ---
+import Pager from '../../shared/presentation/Pager.astro';
 import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import { dateTime } from '../../features/learning/presentation/format';
 import SessionForm from '../../features/live-training/presentation/SessionForm.astro';
@@ -75,10 +76,7 @@ const canRecord = session && (session.status === 'scheduled' || session.status =
               <span class="meta">{sessionStates[item.status]}</span>
             </li>)}
           </ul> : <p>No hay sesiones en esta página.</p>}
-          {(page > 1 || data.hasNext) && <nav aria-label="Paginación de sesiones">
-            {page > 1 && <a href={`/admin/sesiones?page=${page - 1}`}>Anterior</a>}
-            {data.hasNext && <a href={`/admin/sesiones?page=${page + 1}`}>Siguiente</a>}
-          </nav>}
+          <Pager page={page} hasNext={data.hasNext} href={(n) => `/admin/sesiones?page=${n}`} label="Paginación de sesiones" />
           {data.courses.length > 0 ? <details>
             <summary>Crear una sesión</summary>
             <SessionForm courses={data.courses} action={listPath} />
@@ -126,10 +124,7 @@ const canRecord = session && (session.status === 'scheduled' || session.status =
                   </li>)}
                 </ul> : <p>{present ? 'No hay asistentes registrados en esta página.' : 'No hay alumnos en esta página.'}</p>
               ) : <p class="notice" role="status">No se pudo cargar la asistencia.</p>}
-              {(rosterPage > 1 || roster?.hasNext) && <nav aria-label="Paginación de alumnos">
-                {rosterPage > 1 && <a href={`${sessionPath(session.id, rosterPage - 1, present)}#asistencia`}>Anterior</a>}
-                {roster?.hasNext && <a href={`${sessionPath(session.id, rosterPage + 1, present)}#asistencia`}>Siguiente</a>}
-              </nav>}
+              {roster && <Pager page={rosterPage} hasNext={roster.hasNext} href={(n) => `${sessionPath(session.id, n, present)}#asistencia`} label="Paginación de alumnos" />}
             </section>
           </>
         )}

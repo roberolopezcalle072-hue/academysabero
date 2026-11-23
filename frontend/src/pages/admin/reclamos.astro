@@ -1,6 +1,7 @@
 ---
 import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import { loadComplaints, answerComplaint } from '../../features/access-admin/infrastructure/complaints-api';
+import Pager from '../../shared/presentation/Pager.astro';
 import { siteUrl } from '../../shared/config/server';
 
 const token = Astro.locals.accessToken;
@@ -8,6 +9,8 @@ if (!token) return Astro.redirect('/ingresar', 303);
 Astro.response.headers.set('Cache-Control', 'private, no-store');
 const statusParam = Astro.url.searchParams.get('estado') ?? 'open';
 const status = ['open', 'answered', 'all'].includes(statusParam) ? statusParam : 'open';
+const pageParam = Astro.url.searchParams.get('page') ?? '1';
+const page = /^[1-9]\d{0,4}$/.test(pageParam) ? Number(pageParam) : 1;
 const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
 let message = '';
 
@@ -24,7 +27,7 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-const data = await loadComplaints(token, status, 1);
+const data = await loadComplaints(token, status, page);
 const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date(iso));
 const tabs = [['open', 'Pendientes'], ['answered', 'Respondidos'], ['all', 'Todos']];
 ---
@@ -58,7 +61,7 @@ const tabs = [['open', 'Pendientes'], ['answered', 'Respondidos'], ['all', 'Todo
           <p><strong>Detalle:</strong> {c.detail}</p>
           <p><strong>Pedido:</strong> {c.request}</p>
           {c.status === 'open' ? (
-            <form method="post" action={`/admin/reclamos?estado=${status}`} class="answer">
+            <form method="post" action={`/admin/reclamos?estado=${status}&page=${page}`} class="answer">
               <input type="hidden" name="id" value={c.id} />
               <label for={`r-${c.id}`}>Respuesta al consumidor</label>
               <textarea id={`r-${c.id}`} name="response" rows="3" minlength="5" maxlength="3000" required></textarea>
@@ -71,6 +74,7 @@ const tabs = [['open', 'Pendientes'], ['answered', 'Respondidos'], ['all', 'Todo
         </article>
       ))}
     </div>
+    {data && <Pager page={page} hasNext={data.hasNext} href={(n) => `/admin/reclamos?estado=${status}&page=${n}`} />}
   </section>
 </AdminLayout>
 <style>

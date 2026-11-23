@@ -4,6 +4,7 @@ import { createSessionClient } from '../../features/access/infrastructure/supaba
 import { whatsappUrl } from '../../features/landing/content';
 import { loadMyPayments } from '../../features/payments/payments-api';
 import { moneyIn } from '../../features/landing/promo';
+import Pager from '../../shared/presentation/Pager.astro';
 
 const token = Astro.locals.accessToken;
 if (!token) return Astro.redirect('/ingresar', 303);
@@ -14,7 +15,12 @@ const name = String(user?.user_metadata?.full_name ?? user?.user_metadata?.name 
 const hasPassword = user?.identities?.some((identity) => identity.provider === 'email') ?? false;
 const viaGoogle = user?.identities?.some((identity) => identity.provider === 'google') ?? false;
 
-const payments = await loadMyPayments(token);
+const allPayments = await loadMyPayments(token);
+const PER = 5;
+const pagosParam = Astro.url.searchParams.get('pagos') ?? '1';
+const pagosPage = /^[1-9]\d{0,3}$/.test(pagosParam) ? Number(pagosParam) : 1;
+const payments = allPayments.slice((pagosPage - 1) * PER, pagosPage * PER);
+const hasMorePayments = allPayments.length > pagosPage * PER;
 const fmtDate = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeZone: 'America/Lima' }).format(new Date(iso));
 const state = Astro.url.searchParams.get('estado');
 const ok = state === 'ok';
@@ -99,10 +105,11 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
             </ul>
           ) : (
             <div class="empty">
-              <p class="big">Aún no tienes pagos</p>
+              <p class="big">{allPayments.length ? 'No hay pagos en esta página' : 'Aún no tienes pagos'}</p>
               <p class="hint">Cuando completes la compra de un curso, aquí verás tu constancia de pago.</p>
             </div>
           )}
+          <Pager page={pagosPage} hasNext={hasMorePayments} href={(n) => `/cuenta/perfil?pagos=${n}`} label="Paginación de pagos" />
         </article>
       </div>
     </section>

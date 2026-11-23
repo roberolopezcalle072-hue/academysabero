@@ -1,0 +1,26 @@
+---
+interface Props {
+  page: number;
+  hasNext: boolean;
+  /** Dirección de cada página, por ejemplo (n) => `/admin/consultas?page=${n}` */
+  href: (page: number) => string;
+  label?: string;
+}
+const { page, hasNext, href, label = 'Paginación' } = Astro.props;
+---
+<nav class="pager" aria-label={label}>
+  {page > 1
+    ? <a class="pg" href={href(page - 1)} rel="prev">← Anterior</a>
+    : <span class="pg off" aria-disabled="true">← Anterior</span>}
+  <span class="now" aria-current="page">Página {page}</span>
+  {hasNext
+    ? <a class="pg" href={href(page + 1)} rel="next">Siguiente →</a>
+    : <span class="pg off" aria-disabled="true">Siguiente →</span>}
+</nav>
+<style>
+  .pager { display: flex; align-items: center; justify-content: space-between; gap: .8rem; width: 100%; margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid rgb(255 255 255 / .08); }
+  .pg { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: .4rem 1.05rem; border-radius: 10px; font-size: .86rem; font-weight: 600; text-decoration: none; color: #e6eeff; border: 1px solid rgb(255 255 255 / .16); background: rgb(255 255 255 / .04); transition: background .15s; }
+  a.pg:hover { background: rgb(255 255 255 / .1); }
+  .pg.off { opacity: .35; cursor: default; }
+  .now { font-size: .85rem; font-weight: 600; color: #9db2d8; white-space: nowrap; }
+</style>

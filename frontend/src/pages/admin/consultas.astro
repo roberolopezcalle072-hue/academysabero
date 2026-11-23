@@ -1,4 +1,5 @@
 ---
+import Pager from '../../shared/presentation/Pager.astro';
 import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import { loadInquiries, replyInquiry } from '../../features/access-admin/infrastructure/inquiries-api';
 import { siteUrl } from '../../shared/config/server';
@@ -70,12 +71,7 @@ const tabs = [['open', 'Pendientes'], ['answered', 'Respondidas'], ['all', 'Toda
         </article>
       ))}
     </div>
-    {(page > 1 || data?.hasNext) && (
-      <nav class="pager" aria-label="Paginación">
-        {page > 1 && <a href={`/admin/consultas?estado=${status}&page=${page - 1}`}>← Anterior</a>}
-        {data?.hasNext && <a href={`/admin/consultas?estado=${status}&page=${page + 1}`}>Siguiente →</a>}
-      </nav>
-    )}
+    {data && <Pager page={page} hasNext={data.hasNext} href={(n) => `/admin/consultas?estado=${status}&page=${n}`} />}
   </section>
 </AdminLayout>
 <style>

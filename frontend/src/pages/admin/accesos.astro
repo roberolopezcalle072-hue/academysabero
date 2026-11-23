@@ -1,4 +1,5 @@
 ---
+import Pager from '../../shared/presentation/Pager.astro';
 import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import { readDashboard, submitAccessChange } from '../../features/access-admin/infrastructure/admin-api';
 import { siteUrl } from '../../shared/config/server';
@@ -98,10 +99,7 @@ if (!data && Astro.response.status === 200) Astro.response.status = 503;
           </ul> : <p>No hay alumnos en esta página.</p>
       ) : <p class="notice" role="status">No se pudo cargar la información de acceso.</p>}
     </section>
-    {(page > 1 || data?.hasNext) && <nav aria-label="Paginación de acceso" class="actions">
-      {page > 1 && <a class="button secondary" href={`/admin/accesos?page=${page - 1}`}>Anterior</a>}
-      {data?.hasNext && <a class="button secondary" href={`/admin/accesos?page=${page + 1}`}>Siguiente</a>}
-    </nav>}
+    {data && <Pager page={page} hasNext={data.hasNext} href={(n) => `/admin/accesos?page=${n}`} />}
   </section>
 </AdminLayout>
 <style>

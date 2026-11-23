@@ -1,4 +1,5 @@
 ---
+import Pager from '../../shared/presentation/Pager.astro';
 import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import { loadAdminRequests } from '../../features/enrollment/infrastructure/enrollment-api';
 import { money } from '../../features/landing/promo';
@@ -64,12 +65,7 @@ const labels: Record<string, string> = { pending: 'Pendiente', approved: 'Aproba
       ))}
     </div>
 
-    {data && (page > 1 || data.hasNext) && (
-      <nav class="pager" aria-label="Paginación">
-        {page > 1 && <a href={`/admin/solicitudes?estado=${status}&page=${page - 1}`}>Anterior</a>}
-        {data.hasNext && <a href={`/admin/solicitudes?estado=${status}&page=${page + 1}`}>Siguiente</a>}
-      </nav>
-    )}
+    {data && <Pager page={page} hasNext={data.hasNext} href={(n) => `/admin/solicitudes?estado=${status}&page=${n}`} />}
   </section>
 </AdminLayout>
 

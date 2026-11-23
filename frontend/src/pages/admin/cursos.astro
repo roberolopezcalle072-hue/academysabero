@@ -1,4 +1,5 @@
 ---
+import Pager from '../../shared/presentation/Pager.astro';
 import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import EditorialForm from '../../features/learning/presentation/EditorialForm.astro';
 import { statuses } from '../../features/learning/presentation/editorial-fields';
@@ -13,12 +14,14 @@ const selected = Astro.url.searchParams.get('curso') ?? '';
 const courseId = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(selected) ? selected : '';
 const path = `/admin/cursos?page=${page}${courseId ? `&curso=${courseId}` : ''}`;
 let message = Astro.url.searchParams.get('guardado') === '1' ? 'Cambios guardados.' : '';
+let failed = false;
 
 if (Astro.request.method === 'POST') {
   if (Astro.request.headers.get('origin') !== siteUrl().origin) return new Response(null, { status: 403 });
   const response = await (async () => saveEditorial(token, await Astro.request.formData()))().catch(() => null);
   if (response?.ok) return Astro.redirect(`${path}&guardado=1`, 303);
   Astro.response.status = response?.status ?? 503;
+  failed = true;
   message = response?.status === 409
     ? 'Revisa los campos, el formato del enlace y las posiciones repetidas.'
     : 'No se pudieron guardar los cambios.';
@@ -29,79 +32,150 @@ if (!data && Astro.response.status === 200) Astro.response.status = 503;
 const course = data?.course;
 const state = (value: string) => statuses[value as keyof typeof statuses] ?? value;
 ---
-<AdminLayout title="Gestión de cursos">
+<AdminLayout title="Programa y cursos">
   <div class="shell page stack editorial">
-    <a href="/admin">← Panel de administración</a>
-    <h1 class="panel-title">Gestión de cursos</h1>
-    {message && <p class="notice" role="status">{message}</p>}
+    <header class="top">
+      <p class="eyebrow">Administración</p>
+      <h1>Programa y cursos</h1>
+      <p class="lead">Edita lo que ve el público en la portada y el contenido de cada curso: módulos, lecciones y materiales.</p>
+    </header>
+    {message && <p class={`notice ${failed ? 'bad' : ''}`} role="status">{message}</p>}
+
     {data ? (
       <>
-        <section class="editorial-section">
-          <details>
-            <summary>Programa de la landing</summary>
-            <EditorialForm entity="program" action={path} values={data.program ?? {}} />
+        <section class="block" aria-label="Portada">
+          <div class="block-head"><div><h2>Programa de la landing</h2><p class="sub">Los textos que aparecen en la portada del sitio.</p></div></div>
+          <details class="panel">
+            <summary><span>Editar programa</span></summary>
+            <div class="inner"><EditorialForm entity="program" action={path} values={data.program ?? {}} /></div>
           </details>
         </section>
-        <section class="editorial-section stack compact">
-          <h2>Cursos</h2>
-          {data.courses.length > 0 ? <ul class="catalog">
-            {data.courses.map(item => <li>
-              <a href={`/admin/cursos?page=${page}&curso=${item.id}#contenido-curso`}>{item.name}</a>
-              <span>{state(item.status)}</span>
-            </li>)}
-          </ul> : <p>No hay cursos en esta página.</p>}
-          {(page > 1 || data.hasNext) && <nav aria-label="Paginación de cursos">
-            {page > 1 && <a href={`/admin/cursos?page=${page - 1}`}>Anterior</a>}
-            {data.hasNext && <a href={`/admin/cursos?page=${page + 1}`}>Siguiente</a>}
-          </nav>}
-          <details>
-            <summary>Crear curso</summary>
-            <EditorialForm entity="course" action={path} />
+
+        <section class="block" aria-label="Cursos">
+          <div class="block-head"><div><h2>Cursos</h2><p class="sub">Elige un curso para gestionar su contenido.</p></div></div>
+          {data.courses.length > 0 ? (
+            <ul class="courses">
+              {data.courses.map((item) => (
+                <li class={item.id === courseId ? 'on' : ''}>
+                  <div class="cname"><b>{item.name}</b><span class={`chip ${item.status}`}>{state(item.status)}</span></div>
+                  <a class={`btn ${item.id === courseId ? 'primary' : 'ghost'}`} href={`/admin/cursos?page=${page}&curso=${item.id}#contenido-curso`}>{item.id === courseId ? 'Gestionando' : 'Gestionar'}</a>
+                </li>
+              ))}
+            </ul>
+          ) : <p class="soft">No hay cursos en esta página.</p>}
+          <Pager page={page} hasNext={data.hasNext} href={(n) => `/admin/cursos?page=${n}`} label="Paginación de cursos" />
+          <details class="panel add">
+            <summary><span>+ Crear un curso nuevo</span></summary>
+            <div class="inner"><EditorialForm entity="course" action={path} /></div>
           </details>
         </section>
-        {course && <section id="contenido-curso" class="editorial-section stack compact">
-          <h2>{course.name}</h2>
-          <details>
-            <summary>Editar curso</summary>
-            <EditorialForm entity="course" action={path} values={course} />
-          </details>
-          <details>
-            <summary>Agregar módulo</summary>
-            <EditorialForm entity="module" action={path} parents={{ course_id: course.id }} />
-          </details>
-          {data.modules.map(module => <details class="outline-entry">
-            <summary>{module.title} · {state(module.status)}</summary>
-            <EditorialForm entity="module" action={path} values={module} />
-            <details class="nested">
-              <summary>Agregar lección</summary>
-              <EditorialForm entity="lesson" action={path} parents={{ course_id: course.id, module_id: module.id }} />
-            </details>
-            {data.lessons.filter(lesson => lesson.module_id === module.id).map(lesson => <details class="nested">
-              <summary>Día {lesson.day_number} · {lesson.title} · {state(lesson.status)}</summary>
-              <EditorialForm entity="lesson" action={path} values={lesson} />
-              <details class="nested">
-                <summary>Agregar material</summary>
-                <EditorialForm entity="material" action={path} parents={{ lesson_id: lesson.id }} />
+
+        {course && (
+          <section id="contenido-curso" class="block" aria-label="Contenido del curso">
+            <div class="block-head">
+              <div><p class="eyebrow">Contenido del curso</p><h2 class="big">{course.name}</h2></div>
+              <span class={`chip ${course.status}`}>{state(course.status)}</span>
+            </div>
+            <div class="tools">
+              <details class="panel">
+                <summary><span>Editar datos del curso</span></summary>
+                <div class="inner"><EditorialForm entity="course" action={path} values={course} /></div>
               </details>
-              {data.materials.filter(material => material.lesson_id === lesson.id).map(material => <details class="nested">
-                <summary>{material.title}</summary>
-                <EditorialForm entity="material" action={path} values={material} />
-              </details>)}
-            </details>)}
-          </details>)}
-        </section>}
-        {courseId && !course && <p role="status">El curso seleccionado no está disponible.</p>}
+              <details class="panel add">
+                <summary><span>+ Agregar módulo</span></summary>
+                <div class="inner"><EditorialForm entity="module" action={path} parents={{ course_id: course.id }} /></div>
+              </details>
+            </div>
+
+            {data.modules.length === 0 && <p class="soft">Este curso todavía no tiene módulos.</p>}
+            <div class="modules">
+              {data.modules.map((module) => (
+                <details class="panel module">
+                  <summary><span class="ttl">{module.title}</span><span class={`chip ${module.status}`}>{state(module.status)}</span></summary>
+                  <div class="inner">
+                    <EditorialForm entity="module" action={path} values={module} />
+                    <details class="panel sub add">
+                      <summary><span>+ Agregar lección</span></summary>
+                      <div class="inner"><EditorialForm entity="lesson" action={path} parents={{ course_id: course.id, module_id: module.id }} /></div>
+                    </details>
+                    {data.lessons.filter((lesson) => lesson.module_id === module.id).map((lesson) => (
+                      <details class="panel sub">
+                        <summary>
+                          <span class="day">Día {lesson.day_number}</span>
+                          <span class="ttl">{lesson.title}</span>
+                          <span class={`chip ${lesson.status}`}>{state(lesson.status)}</span>
+                        </summary>
+                        <div class="inner">
+                          <EditorialForm entity="lesson" action={path} values={lesson} />
+                          <details class="panel sub add">
+                            <summary><span>+ Agregar material</span></summary>
+                            <div class="inner"><EditorialForm entity="material" action={path} parents={{ lesson_id: lesson.id }} /></div>
+                          </details>
+                          {data.materials.filter((material) => material.lesson_id === lesson.id).map((material) => (
+                            <details class="panel sub">
+                              <summary><span class="ttl">{material.title}</span></summary>
+                              <div class="inner"><EditorialForm entity="material" action={path} values={material} /></div>
+                            </details>
+                          ))}
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </section>
+        )}
+        {courseId && !course && <p class="notice" role="status">El curso seleccionado no está disponible.</p>}
       </>
     ) : <p class="notice" role="status">No se pudo cargar la gestión de cursos.</p>}
   </div>
 </AdminLayout>
 <style>
-  .editorial { gap: 2rem; }
-  .editorial-section { width: 100%; border-top: 1px solid var(--line); padding-top: 1rem; }
-  details, .catalog { width: 100%; }
-  summary { cursor: pointer; color: var(--link); padding-block: .45rem; font-weight: 700; }
-  .catalog { list-style: none; padding: 0; margin: 0; }
-  .catalog li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .6rem; border-bottom: 1px solid var(--line); padding-block: .55rem; }
-  .catalog span { color: var(--muted); }
-  .outline-entry, .nested { border-left: 2px solid var(--line); padding-left: .85rem; }
+  .editorial { display: grid; gap: 1.6rem; align-content: start; max-width: 64rem; }
+  .eyebrow { margin: 0 0 .35rem; font-size: .72rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #5cc8ff; }
+  h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: -.01em; }
+  .lead { margin: .5rem 0 0; color: #93a8d0; font-size: .95rem; max-width: 44rem; }
+  .notice { margin: 0; }
+  .notice.bad { border-color: rgb(255 120 120 / .5); background: rgb(255 90 90 / .1); color: #ffd6d6; }
+
+  .block { border: 1px solid rgb(255 255 255 / .09); border-radius: 18px; padding: 1.4rem 1.5rem; display: grid; gap: 1rem; background: linear-gradient(180deg, rgb(255 255 255 / .045), rgb(255 255 255 / .02)); box-shadow: 0 18px 40px -28px rgb(0 0 0 / .8); }
+  .block-head { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
+  h2 { margin: 0; font-size: 1.05rem; font-weight: 650; }
+  h2.big { font-size: 1.35rem; }
+  .sub { margin: .25rem 0 0; color: #8fa6d1; font-size: .86rem; }
+  .soft { margin: 0; color: #8fa6d1; font-size: .9rem; }
+
+  .chip { flex: none; font-size: .72rem; font-weight: 700; padding: .2rem .65rem; border-radius: 999px; border: 1px solid rgb(255 255 255 / .16); color: #dbe7ff; background: rgb(255 255 255 / .04); white-space: nowrap; }
+  .chip.published { background: rgb(53 208 127 / .14); border-color: rgb(53 208 127 / .45); color: #8ff0bb; }
+  .chip.draft { background: rgb(255 193 70 / .12); border-color: rgb(255 193 70 / .4); color: #ffd98a; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: .45rem 1.1rem; border-radius: 10px; font-weight: 600; font-size: .86rem; text-decoration: none; border: 1px solid transparent; }
+  .btn.primary { color: #fff; background: linear-gradient(180deg, #3b9bff, #1c63ea); box-shadow: 0 8px 22px -10px rgb(47 123 255 / .8); }
+  .btn.ghost { color: #e6eeff; border-color: rgb(255 255 255 / .16); background: rgb(255 255 255 / .04); }
+  .btn.ghost:hover { background: rgb(255 255 255 / .09); }
+
+  .courses { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+  .courses li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 1rem; border-radius: 14px; border: 1px solid rgb(255 255 255 / .08); background: rgb(255 255 255 / .02); }
+  .courses li.on { border-color: rgb(47 149 255 / .6); background: rgb(47 123 255 / .1); }
+  .cname { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; min-width: 0; }
+  .cname b { color: #fff; font-weight: 600; }
+  .pager { display: flex; justify-content: space-between; }
+
+  .tools, .modules { display: grid; gap: .7rem; }
+  /* Paneles desplegables: se ven como filas con botón, no como enlaces */
+  .panel { border: 1px solid rgb(255 255 255 / .09); border-radius: 14px; background: rgb(255 255 255 / .025); }
+  .panel > summary { display: flex; align-items: center; gap: .8rem; padding: .8rem 1rem; cursor: pointer; list-style: none; color: #e6eeff; font-weight: 600; font-size: .92rem; border-radius: 14px; }
+  .panel > summary::-webkit-details-marker { display: none; }
+  .panel > summary::after { content: ""; flex: none; margin-left: auto; width: .55rem; height: .55rem; border-right: 2px solid #8fa6d1; border-bottom: 2px solid #8fa6d1; transform: rotate(45deg); transition: transform .2s; margin-bottom: .2rem; }
+  .panel[open] > summary::after { transform: rotate(-135deg); margin-bottom: -.2rem; }
+  .panel > summary:hover { background: rgb(255 255 255 / .04); }
+  .panel[open] > summary { border-bottom: 1px solid rgb(255 255 255 / .08); border-radius: 14px 14px 0 0; }
+  .panel > summary .ttl { flex: 1; min-width: 0; font-weight: 600; }
+  .panel > summary .day { flex: none; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5cc8ff; }
+  .panel.add > summary { color: #8ec5ff; }
+  .inner { padding: 1rem 1.1rem 1.2rem; display: grid; gap: .8rem; }
+  .panel.sub { background: rgb(255 255 255 / .02); }
+  .module { border-radius: 16px; }
+  @media (max-width: 40rem) { .block { padding: 1.1rem; border-radius: 16px; } .courses li { flex-direction: column; align-items: stretch; } .courses .btn { width: 100%; } }
 </style>

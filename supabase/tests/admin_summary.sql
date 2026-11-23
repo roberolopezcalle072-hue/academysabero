@@ -32,4 +32,19 @@ do $$ declare r jsonb; begin
   if jsonb_array_length(r->'payments') <> 1 or r->'payments'->0->>'email' <> 'ana@test.com' then raise exception 'pagos recientes mal: %', r->'payments'; end if;
   raise notice 'resumen del administrador OK';
 end $$;
+do $$ declare r jsonb; begin
+  r := public.academy_admin_payments('paid', 1);
+  if jsonb_array_length(r->'items') <> 1 or (r->>'hasNext')::boolean then raise exception 'pagos pagados mal: %', r; end if;
+  if jsonb_array_length(public.academy_admin_payments('other', 1)->'items') <> 0 then raise exception 'no debia haber otros'; end if;
+  begin perform public.academy_admin_payments('x', 1); raise exception 'DEBIO FALLAR (filtro)';
+  exception when sqlstate '22023' then raise notice 'filtro de pagos invalido rechazado OK'; end;
+  raise notice 'lista de pagos paginada OK';
+end $$;
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated","session_id":"aaaaaaaa-aaaa-aaaa-aaaa-000000000001","amr":[{"method":"password"}]}', true);
+do $$ begin
+  begin perform public.academy_admin_payments('paid', 1); raise exception 'DEBIO FALLAR (alumno)';
+  exception when insufficient_privilege then raise notice 'alumno no ve la lista de pagos OK'; end;
+end $$;
 rollback;

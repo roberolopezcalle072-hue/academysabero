@@ -1,4 +1,5 @@
 ---
+import Pager from '../../shared/presentation/Pager.astro';
 import BaseLayout from '../../shared/presentation/BaseLayout.astro';
 import CampusNavigation from '../../features/learning/presentation/CampusNavigation.astro';
 import { dateTime } from '../../features/learning/presentation/format';
@@ -90,12 +91,7 @@ const status = { open: 'Abierta', answered: 'Respondida', closed: 'Cerrada' } as
             </div>
           )
         ) : <p class="notice" role="status">No se pudo cargar el historial.</p>}
-        {(page > 1 || data?.hasNext) && (
-          <nav class="pager" aria-label="Paginación de consultas">
-            {page > 1 && <a href={`/campus/consultas?page=${page - 1}`}>← Anterior</a>}
-            {data?.hasNext && <a href={`/campus/consultas?page=${page + 1}`}>Siguiente →</a>}
-          </nav>
-        )}
+        {data && <Pager page={page} hasNext={data.hasNext} href={(n) => `/campus/consultas?page=${n}`} label="Paginación de consultas" />}
       </section>
     </div>
   </div>

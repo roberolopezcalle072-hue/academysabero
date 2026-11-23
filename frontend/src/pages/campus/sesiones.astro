@@ -1,4 +1,5 @@
 ---
+import Pager from '../../shared/presentation/Pager.astro';
 import BaseLayout from '../../shared/presentation/BaseLayout.astro';
 import CampusNavigation from '../../features/learning/presentation/CampusNavigation.astro';
 import { dateTime } from '../../features/learning/presentation/format';
@@ -67,10 +68,7 @@ const live = next && Date.parse(next.starts_at) <= Date.now();
               </li>
             ))}
           </ul> : <p>No hay sesiones anteriores en esta página.</p>}
-          {(page > 1 || agenda.hasNext) && <nav aria-label="Paginación del historial">
-            {page > 1 && <a href={`/campus/sesiones?page=${page - 1}`}>Anterior</a>}
-            {agenda.hasNext && <a href={`/campus/sesiones?page=${page + 1}`}>Siguiente</a>}
-          </nav>}
+          <Pager page={page} hasNext={agenda.hasNext} href={(n) => `/campus/sesiones?page=${n}`} label="Paginación del historial" />
         </section>
       </>
     ) : <p class="notice" role="status">No se pudo cargar la agenda. Inténtalo de nuevo más tarde.</p>}
