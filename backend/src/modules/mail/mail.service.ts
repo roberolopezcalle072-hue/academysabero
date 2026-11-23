@@ -80,6 +80,23 @@ export class MailService {
     });
   }
 
+  inquiryAnswered(input: { key: string; to: string; name: string; subject: string; reply: string }) {
+    return this.deliver({
+      to: [input.to],
+      subject: `Respuesta a tu consulta: ${input.subject}`.replace(/[\r\n<>]+/g, ' ').slice(0, 150),
+      idempotencyKey: `consulta-resp-${input.key}`,
+      replyTo: this.admin,
+      ...this.render({
+        title: 'Respondimos tu consulta',
+        intro: `Hola ${esc(input.name)}, el equipo de SABERO Academy respondió tu consulta.`,
+        rows: [['Asunto', input.subject]],
+        blocks: [['Respuesta', input.reply]],
+        buttons: [['Ver en mi campus', `${this.site}/campus/consultas`]],
+        note: 'Puedes responder a este correo si necesitas algo más.',
+      }),
+    });
+  }
+
   inquiryReceived(input: { key: string; to: string; name: string; subject: string; body: string }) {
     return this.deliver({
       to: [input.to],
