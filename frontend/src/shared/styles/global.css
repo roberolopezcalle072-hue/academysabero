@@ -222,3 +222,43 @@ body { overflow-x: clip; }
 .dk.campus :where(h2) { font-size: 1.15rem; font-weight: 650; letter-spacing: 0; }
 .dk.campus :where(.next, .lesson, .registration) { border: 1px solid rgb(255 255 255 / .09); border-radius: 18px; background: linear-gradient(180deg, rgb(255 255 255 / .045), rgb(255 255 255 / .02)); }
 .dk.campus :where(.sessions li, .pending li, .course-list li) { border-color: rgb(255 255 255 / .08); }
+
+/* ===== Administración: mismo diseño oscuro del campus (menú lateral + contenido a la izquierda) ===== */
+.dk.campus.admin > .admin-main { min-width: 0; }
+.dk.campus.admin .admin-main > .shell { width: 100%; max-width: none; margin: 0; padding: 2.25rem clamp(1.25rem, 3.5vw, 3.5rem) 4.5rem; }
+.dk.campus.admin { --navy: #e6eeff; }
+.dk.campus.admin h1.panel-title { font-size: clamp(1.7rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: -.01em; }
+.dk.campus.admin .kicker { color: #5cc8ff; }
+.dk.campus.admin .stack > p > a, .dk.campus.admin .stack > a { color: #8ec5ff; text-decoration: none; font-size: .9rem; font-weight: 600; }
+/* tarjetas y listas */
+.dk.campus.admin :where(.item, .card, .req, .request, article.item, .student, .box) { background: linear-gradient(180deg, rgb(255 255 255 / .045), rgb(255 255 255 / .02)); border: 1px solid rgb(255 255 255 / .09); border-radius: 18px; box-shadow: 0 18px 40px -28px rgb(0 0 0 / .8); }
+.dk.campus.admin .item { padding: 1.3rem 1.5rem; }
+.dk.campus.admin .item h2, .dk.campus.admin .item h3 { color: #fff; }
+/* pestañas */
+.dk.campus.admin .tabs a { color: #c7d6f2; border: 1px solid rgb(255 255 255 / .14); background: rgb(255 255 255 / .03); }
+.dk.campus.admin .tabs a:hover { background: rgb(255 255 255 / .08); }
+.dk.campus.admin .tabs a[aria-current='page'] { background: linear-gradient(180deg, #3b9bff, #1c63ea); border-color: transparent; color: #fff; }
+/* estados */
+.dk.campus.admin .state { border-color: rgb(255 255 255 / .16); color: #dbe7ff; }
+.dk.campus.admin .state.open, .dk.campus.admin .state.pending { background: rgb(255 193 70 / .12); border-color: rgb(255 193 70 / .4); color: #ffd98a; }
+.dk.campus.admin .state.answered, .dk.campus.admin .state.approved, .dk.campus.admin .state.paid { background: rgb(53 208 127 / .14); border-color: rgb(53 208 127 / .45); color: #8ff0bb; }
+.dk.campus.admin .state.rejected { background: rgb(255 90 90 / .12); border-color: rgb(255 120 120 / .45); color: #ffb4b4; }
+.dk.campus.admin .tag { color: #dbe7ff; border-color: rgb(255 255 255 / .16); }
+.dk.campus.admin .tag.executed, .dk.campus.admin .tag.open { background: rgb(53 208 127 / .14); border-color: rgb(53 208 127 / .45); color: #8ff0bb; }
+.dk.campus.admin .tag.today, .dk.campus.admin .tag.next { background: rgb(47 123 255 / .2); border-color: rgb(92 200 255 / .5); color: #bcdcff; }
+.dk.campus.admin .tag.closed { color: #8fa6d1; }
+/* formularios */
+.dk.campus.admin textarea { background: rgb(3 10 34 / .55); border: 1px solid rgb(255 255 255 / .14); color: #fff; border-radius: 10px; }
+.dk.campus.admin textarea:focus, .dk.campus.admin input:focus, .dk.campus.admin select:focus { outline: none; border-color: #3b9bff; box-shadow: 0 0 0 3px rgb(59 155 255 / .2); }
+.dk.campus.admin fieldset { border-color: rgb(255 255 255 / .1); }
+.dk.campus.admin legend { color: #cfe0ff; }
+.dk.campus.admin .meta, .dk.campus.admin small { color: #8fa6d1; }
+.dk.campus.admin .reply, .dk.campus.admin .resp { background: rgb(47 123 255 / .1); border-left: 3px solid #3b9bff; color: #dbe7ff; }
+.dk.campus.admin .notice.bad { background: rgb(255 90 90 / .1); border-color: rgb(255 120 120 / .5); color: #ffd6d6; }
+.dk.campus.admin details { border-color: rgb(255 255 255 / .09); }
+.dk.campus.admin .week, .dk.campus.admin .class { background: transparent; }
+.dk.campus.admin table th, .dk.campus.admin table td { border-bottom-color: rgb(255 255 255 / .08); color: #dbe7ff; }
+.dk.campus.admin .record-list li, .dk.campus.admin .access-grid section, .dk.campus.admin .students { border-color: rgb(255 255 255 / .08); }
+.dk.campus.admin .num { border-color: rgb(255 255 255 / .2); color: #fff; }
+.dk.campus.admin .button.primary { background: linear-gradient(180deg, #3b9bff, #1c63ea); color: #fff; border-color: transparent; }
+@media (max-width: 62rem) { .dk.campus.admin .admin-main > .shell { padding: 1.5rem 1rem 3.5rem; } }

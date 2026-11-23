@@ -1,5 +1,5 @@
 ---
-import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import EditorialForm from '../../features/learning/presentation/EditorialForm.astro';
 import { statuses } from '../../features/learning/presentation/editorial-fields';
 import { loadCatalog, saveEditorial } from '../../features/learning/infrastructure/editorial-api';
@@ -29,7 +29,7 @@ if (!data && Astro.response.status === 200) Astro.response.status = 503;
 const course = data?.course;
 const state = (value: string) => statuses[value as keyof typeof statuses] ?? value;
 ---
-<BaseLayout title="Gestión de cursos" privatePage>
+<AdminLayout title="Gestión de cursos">
   <div class="shell page stack editorial">
     <a href="/admin">← Panel de administración</a>
     <h1 class="panel-title">Gestión de cursos</h1>
@@ -94,7 +94,7 @@ const state = (value: string) => statuses[value as keyof typeof statuses] ?? val
       </>
     ) : <p class="notice" role="status">No se pudo cargar la gestión de cursos.</p>}
   </div>
-</BaseLayout>
+</AdminLayout>
 <style>
   .editorial { gap: 2rem; }
   .editorial-section { width: 100%; border-top: 1px solid var(--line); padding-top: 1rem; }

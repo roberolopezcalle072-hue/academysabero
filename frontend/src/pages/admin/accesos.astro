@@ -1,5 +1,5 @@
 ---
-import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import { readDashboard, submitAccessChange } from '../../features/access-admin/infrastructure/admin-api';
 import { siteUrl } from '../../shared/config/server';
 
@@ -35,7 +35,7 @@ if (Astro.request.method === 'POST') {
 const data = await readDashboard(token, page).catch(() => null);
 if (!data && Astro.response.status === 200) Astro.response.status = 503;
 ---
-<BaseLayout title="Accesos manuales" privatePage>
+<AdminLayout title="Accesos manuales">
   <section class="shell page stack admin-access">
     <div class="stack compact">
       <p class="kicker">Administración</p>
@@ -103,7 +103,7 @@ if (!data && Astro.response.status === 200) Astro.response.status = 503;
       {data?.hasNext && <a class="button secondary" href={`/admin/accesos?page=${page + 1}`}>Siguiente</a>}
     </nav>}
   </section>
-</BaseLayout>
+</AdminLayout>
 <style>
   .admin-access { gap: 2rem; }
   .note { margin: 0; max-width: 46rem; color: var(--muted); }

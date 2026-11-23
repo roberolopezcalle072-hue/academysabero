@@ -1,5 +1,5 @@
 ---
-import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import { dateTime } from '../../features/learning/presentation/format';
 import SessionForm from '../../features/live-training/presentation/SessionForm.astro';
 import { attendanceStates, sessionStates } from '../../features/live-training/presentation/session-format';
@@ -53,7 +53,7 @@ if ((!data || (data.selected && !roster)) && Astro.response.status === 200) Astr
 const session = data?.selected;
 const canRecord = session && (session.status === 'scheduled' || session.status === 'completed') && Date.parse(session.starts_at) <= Date.now();
 ---
-<BaseLayout title="Gestión de sesiones" privatePage>
+<AdminLayout title="Gestión de sesiones">
   <div class="shell page stack live-admin">
     <a href="/admin">← Panel de administración</a>
     <header class="stack compact">
@@ -137,7 +137,7 @@ const canRecord = session && (session.status === 'scheduled' || session.status =
       </>
     ) : <p class="notice" role="status">No se pudo cargar la gestión de sesiones.</p>}
   </div>
-</BaseLayout>
+</AdminLayout>
 <style>
   .live-admin { gap: 2rem; }
   .section, .rows, details { width: 100%; }

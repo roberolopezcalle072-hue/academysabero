@@ -1,5 +1,5 @@
 ---
-import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import { readStudents, resetStudentPassword } from '../../features/access-admin/infrastructure/admin-api';
 import { siteUrl } from '../../shared/config/server';
 
@@ -41,7 +41,7 @@ if (!data && Astro.response.status === 200) Astro.response.status = 503;
 const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(new Date(iso));
 const self = `/admin/alumnos?q=${encodeURIComponent(q)}&page=${page}`;
 ---
-<BaseLayout title="Alumnos y contraseñas" privatePage>
+<AdminLayout title="Alumnos y contraseñas">
   <section class="shell page stack">
     <div class="stack compact">
       <p class="kicker">Administración</p>
@@ -94,7 +94,7 @@ const self = `/admin/alumnos?q=${encodeURIComponent(q)}&page=${page}`;
       </nav>
     )}
   </section>
-</BaseLayout>
+</AdminLayout>
 
 <style>
   .search { display: flex; gap: .6rem; width: 100%; max-width: 40rem; }

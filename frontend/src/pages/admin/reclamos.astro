@@ -1,5 +1,5 @@
 ---
-import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import { loadComplaints, answerComplaint } from '../../features/access-admin/infrastructure/complaints-api';
 import { siteUrl } from '../../shared/config/server';
 
@@ -28,7 +28,7 @@ const data = await loadComplaints(token, status, 1);
 const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date(iso));
 const tabs = [['open', 'Pendientes'], ['answered', 'Respondidos'], ['all', 'Todos']];
 ---
-<BaseLayout title="Libro de Reclamaciones" privatePage>
+<AdminLayout title="Libro de Reclamaciones">
   <section class="shell page stack">
     <div class="stack compact">
       <p class="kicker">Administración</p>
@@ -63,7 +63,7 @@ const tabs = [['open', 'Pendientes'], ['answered', 'Respondidos'], ['all', 'Todo
               <label for={`r-${c.id}`}>Respuesta al consumidor</label>
               <textarea id={`r-${c.id}`} name="response" rows="3" minlength="5" maxlength="3000" required></textarea>
               <button class="button primary">Guardar respuesta</button>
-              <p class="meta">Recuerda enviar la respuesta al correo del consumidor ({c.email}) dentro del plazo legal.</p>
+              <p class="meta">Al guardar, la respuesta también se envía al correo del consumidor ({c.email}).</p>
             </form>
           ) : (
             <p class="resp"><strong>Respuesta ({c.answered_at ? fmt(c.answered_at) : ''}):</strong> {c.response}</p>
@@ -72,7 +72,7 @@ const tabs = [['open', 'Pendientes'], ['answered', 'Respondidos'], ['all', 'Todo
       ))}
     </div>
   </section>
-</BaseLayout>
+</AdminLayout>
 <style>
   .tabs { display: flex; gap: .5rem; flex-wrap: wrap; }
   .tabs a { padding: .45rem 1rem; border: 1px solid var(--line); border-radius: 999px; color: var(--navy); text-decoration: none; font-weight: 600; font-size: .9rem; }

@@ -1,0 +1,15 @@
+---
+import BaseLayout from '../../../shared/presentation/BaseLayout.astro';
+import AdminNavigation from './AdminNavigation.astro';
+
+interface Props { title: string }
+const { title } = Astro.props;
+---
+<BaseLayout title={title} privatePage dark>
+  <div class="dk campus admin">
+    <AdminNavigation />
+    <div class="admin-main">
+      <slot />
+    </div>
+  </div>
+</BaseLayout>

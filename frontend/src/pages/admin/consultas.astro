@@ -1,5 +1,5 @@
 ---
-import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import { loadInquiries, replyInquiry } from '../../features/access-admin/infrastructure/inquiries-api';
 import { siteUrl } from '../../shared/config/server';
 
@@ -34,7 +34,7 @@ const data = await loadInquiries(token, status, page);
 const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date(iso));
 const tabs = [['open', 'Pendientes'], ['answered', 'Respondidas'], ['all', 'Todas']];
 ---
-<BaseLayout title="Consultas de alumnos" privatePage>
+<AdminLayout title="Consultas de alumnos">
   <section class="shell page stack inq">
     <div class="stack compact">
       <p class="kicker">Administración</p>
@@ -77,7 +77,7 @@ const tabs = [['open', 'Pendientes'], ['answered', 'Respondidas'], ['all', 'Toda
       </nav>
     )}
   </section>
-</BaseLayout>
+</AdminLayout>
 <style>
   .inq { max-width: 60rem; }
   .tabs { display: flex; gap: .5rem; flex-wrap: wrap; }

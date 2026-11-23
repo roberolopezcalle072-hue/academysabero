@@ -1,5 +1,5 @@
 ---
-import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import { loadSchedule, loadStudents, saveClass, saveSettings, saveWeek, WEEKDAYS, shortDate } from '../../features/schedule/schedule-api';
 import { siteUrl } from '../../shared/config/server';
 
@@ -48,7 +48,7 @@ const zones = ['America/Lima', 'America/Bogota', 'America/Guayaquil', 'America/M
 const phaseLabel: Record<string, string> = { executed: 'Ejecutada', today: 'Hoy', next: 'Próxima', pending: 'Pendiente' };
 const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date(iso));
 ---
-<BaseLayout title="Cronograma del curso" privatePage>
+<AdminLayout title="Cronograma del curso">
   <section class="shell page stack admin-plan">
     <div class="stack compact">
       <p class="kicker">Administración</p>
@@ -165,7 +165,7 @@ const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medi
       </>
     ) : <p class="notice" role="status">No hay un cronograma cargado para mostrar.</p>}
   </section>
-</BaseLayout>
+</AdminLayout>
 <script>
   // Cambiar la disponibilidad de una clase que los alumnos ya pueden ver pide confirmación.
   document.querySelectorAll<HTMLFormElement>('.classform').forEach((form) => {

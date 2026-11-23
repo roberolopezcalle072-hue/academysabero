@@ -1,5 +1,5 @@
 ---
-import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
 import { loadAdminRequests } from '../../features/enrollment/infrastructure/enrollment-api';
 import { money } from '../../features/landing/promo';
 
@@ -16,7 +16,7 @@ const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medi
 const tabs = [['pending', 'Pendientes'], ['approved', 'Aprobadas'], ['rejected', 'Rechazadas'], ['all', 'Todas']];
 const labels: Record<string, string> = { pending: 'Pendiente', approved: 'Aprobada', rejected: 'Rechazada' };
 ---
-<BaseLayout title="Solicitudes de inscripción" privatePage>
+<AdminLayout title="Solicitudes de inscripción">
   <section class="shell page stack">
     <div class="stack compact">
       <p class="kicker">Administración</p>
@@ -71,7 +71,7 @@ const labels: Record<string, string> = { pending: 'Pendiente', approved: 'Aproba
       </nav>
     )}
   </section>
-</BaseLayout>
+</AdminLayout>
 
 <style>
   .tabs { display: flex; gap: .5rem; flex-wrap: wrap; }
