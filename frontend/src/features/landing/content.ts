@@ -13,9 +13,9 @@ export const REFUND = { days: 7 };
 
 // Datos legales de la empresa (Perú). Se muestran en el pie y en los términos solo si están completos.
 export const COMPANY = {
-  legalName: '',   // Razón social, por ejemplo "SABERO CONSULTING S.A.C."
-  ruc: '',         // RUC de 11 dígitos
-  address: '',     // Domicilio fiscal
+  legalName: 'LOPEZ SOFTWARE SOLUTIONS E.I.R.L.',
+  ruc: '20615573711',
+  address: 'JR. LOPEZ ALDANA 286, LA VICTORIA, LIMA, LIMA',
   email: 'gerencia@saberoconsulting.com',
 };
 

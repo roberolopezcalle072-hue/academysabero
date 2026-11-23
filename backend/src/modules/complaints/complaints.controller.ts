@@ -4,7 +4,8 @@ import {
 } from '@nestjs/common';
 import { ResolveAccess } from '../access/application/resolve-access';
 import { bearerToken } from '../access/presentation/bearer-token';
-import { SupabaseComplaints } from './supabase-complaints';
+import { MailService } from '../mail/mail.service';
+import { SupabaseComplaints, type ComplaintInput } from './supabase-complaints';
 
 const DOC_TYPES = ['DNI', 'CE', 'PASAPORTE', 'RUC', 'OTRO'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -17,7 +18,11 @@ let windowCount = 0;
 
 @Controller()
 export class ComplaintsController {
-  constructor(private readonly complaints: SupabaseComplaints, private readonly access: ResolveAccess) {}
+  constructor(
+    private readonly complaints: SupabaseComplaints,
+    private readonly access: ResolveAccess,
+    private readonly mail: MailService,
+  ) {}
 
   /** Libro de Reclamaciones virtual: público, no exige cuenta. */
   @Post('complaints')
@@ -39,7 +44,7 @@ export class ComplaintsController {
     if (b.acceptTruth !== true) throw new BadRequestException({ reason: 'declaration-required' });
 
     try {
-      const code = await this.complaints.submit({
+      const input: ComplaintInput = {
         kind, docType, email, isMinor, guardian,
         fullName: text(b.fullName, 2, 120),
         docNumber: text(b.docNumber, 4, 20),
@@ -49,7 +54,11 @@ export class ComplaintsController {
         amount: b.amount === undefined || b.amount === null || b.amount === '' ? null : text(b.amount, 1, 40),
         detail: text(b.detail, 10, 2000),
         request: text(b.request, 5, 1000),
-      });
+      };
+      const code = await this.complaints.submit(input);
+      // Copia para el consumidor y aviso al administrador (sin bloquear la respuesta).
+      void this.mail.complaintReceived({ to: input.email, code, kind: input.kind, name: input.fullName, service: input.service, detail: input.detail, request: input.request, createdAt: new Date().toISOString() });
+      void this.mail.adminComplaint({ code, kind: input.kind, name: input.fullName, email: input.email, detail: input.detail });
       return { code };
     } catch (error) {
       const code = typeof error === 'object' && error !== null && 'code' in error ? (error as { code: string }).code : '';
@@ -75,11 +84,15 @@ export class ComplaintsController {
     @Param('id', ParseUUIDPipe) id: string, @Body('response') response: unknown,
   ) {
     const token = await this.requireAdmin(authorization);
-    await this.complaints.answer(token, id, text(response, 5, 3000)).catch((error: unknown) => {
+    const reply = text(response, 5, 3000);
+    const complaint = await this.complaints.get(token, id).catch(() => null);
+    await this.complaints.answer(token, id, reply).catch((error: unknown) => {
       const code = typeof error === 'object' && error !== null && 'code' in error ? (error as { code: string }).code : '';
       if (code === '23503') throw new NotFoundException();
       return adminError(error);
     });
+    // La respuesta también le llega al consumidor por correo.
+    if (complaint) void this.mail.complaintAnswered({ to: complaint.email, code: complaint.code, name: complaint.full_name, response: reply });
     return { saved: true };
   }
 

@@ -49,6 +49,20 @@ export class SupabasePayments {
     return row ? { ...row, amount: Number(row.amount) } : null;
   }
 
+  /** Datos de la constancia de un pago confirmado (solo del propio alumno o de un administrador). */
+  async receipt(token: string, paymentId: string) {
+    const { data, error } = await this.client(token).rpc('academy_payment_receipt', { p_payment: paymentId });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    return row ? { ...row, amount: Number(row.amount), receipt_number: row.receipt_number === null ? null : Number(row.receipt_number) } : null;
+  }
+
+  async mine(token: string) {
+    const { data, error } = await this.client(token).rpc('academy_my_payments');
+    if (error) throw error;
+    return (data ?? []).map((row: Record<string, unknown>) => ({ ...row, amount: Number(row.amount) }));
+  }
+
   async confirm(paymentId: string, provider: string, externalId: string, amount: number, currency: string) {
     const { error } = await this.client().rpc('academy_confirm_payment', {
       p_secret: this.internalSecret, p_payment: paymentId, p_provider: provider,

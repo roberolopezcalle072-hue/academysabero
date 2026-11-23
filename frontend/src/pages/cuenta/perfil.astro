@@ -2,6 +2,8 @@
 import BaseLayout from '../../shared/presentation/BaseLayout.astro';
 import { createSessionClient } from '../../features/access/infrastructure/supabase-session';
 import { whatsappUrl } from '../../features/landing/content';
+import { loadMyPayments } from '../../features/payments/payments-api';
+import { moneyIn } from '../../features/landing/promo';
 
 const token = Astro.locals.accessToken;
 if (!token) return Astro.redirect('/ingresar', 303);
@@ -12,6 +14,8 @@ const name = String(user?.user_metadata?.full_name ?? user?.user_metadata?.name 
 const hasPassword = user?.identities?.some((identity) => identity.provider === 'email') ?? false;
 const viaGoogle = user?.identities?.some((identity) => identity.provider === 'google') ?? false;
 
+const payments = await loadMyPayments(token);
+const fmtDate = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeZone: 'America/Lima' }).format(new Date(iso));
 const state = Astro.url.searchParams.get('estado');
 const ok = state === 'ok';
 const messages = new Map([
@@ -41,6 +45,21 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
             <div><dt>Acceso</dt><dd>{[hasPassword && 'Correo y contraseña', viaGoogle && 'Google'].filter(Boolean).join(' · ') || '—'}</dd></div>
           </dl>
         </div>
+
+        {payments.length > 0 && (
+          <div class="dk-card box wide-box">
+            <h2>Mis pagos</h2>
+            <ul class="pays">
+              {payments.map((p) => (
+                <li>
+                  <div><strong>{p.course_name}</strong><small>{p.paid_at ? fmtDate(p.paid_at) : fmtDate(p.created_at)} · {p.status === 'paid' ? 'Pagado' : 'Reembolsado'}</small></div>
+                  <span class="amt">{moneyIn(p.amount, p.currency)}</span>
+                  {p.status === 'paid' && <a class="dk-btn ghost" href={`/cuenta/comprobante/${p.payment_id}`}>Constancia</a>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div class="dk-card box">
           <h2>{hasPassword ? 'Cambiar contraseña' : 'Crear una contraseña'}</h2>
@@ -81,5 +100,11 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
   .wide { width: 100%; margin-top: .4rem; }
   .hint { color: #aebfdc; font-size: .88rem; }
   .okmsg { background: rgb(47 211 122 / .12); border-color: #1f9a5b; }
+  .wide-box { grid-column: 1 / -1; }
+  .pays { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+  .pays li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-top: 1px solid #243f7e; padding-top: .7rem; }
+  .pays small { display: block; color: #8aa0c6; }
+  .amt { color: #ffd54a; font-weight: 800; }
+  .pays .dk-btn { min-height: 38px; padding: .4rem 1.1rem; }
   @media (max-width: 52rem) { .grid { grid-template-columns: minmax(0, 1fr); } }
 </style>

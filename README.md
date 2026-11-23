@@ -104,3 +104,23 @@ El cobro es independiente del proveedor. El backend define el contrato `PaymentP
 | `PAYMENT_INTERNAL_SECRET` | Secreto que autoriza al backend a confirmar pagos. Su SHA-256 está en `academy_internal_secrets`. |
 
 Para cambiar de pasarela: escribir un adaptador que implemente `PaymentProvider`, registrarlo en `provider-factory.ts` y añadir su apertura de formulario en `frontend/src/features/payments/checkout.ts`. La base de datos y las pantallas no cambian.
+
+## Correo (Resend)
+
+El backend envía correos con un adaptador intercambiable (`backend/src/modules/mail`): `EmailProvider` + `ResendProvider`. Si no hay `EMAIL_PROVIDER`, el sistema funciona igual y solo registra en el log "Correo no enviado". Un correo caído nunca bloquea un pago ni un reclamo.
+
+Correos que envía: pago confirmado (al alumno, con enlace a su constancia) y aviso de pago (a `EMAIL_ADMIN_TO`); copia de la hoja de reclamación al consumidor y aviso al administrador; respuesta al consumidor cuando el administrador responde un reclamo; aviso de solicitudes de inscripción manuales.
+
+| Variable (backend) | Uso |
+| --- | --- |
+| `EMAIL_PROVIDER` | `resend`, o vacío para no enviar correos. |
+| `RESEND_API_KEY` | Llave de Resend (`re_…`). |
+| `EMAIL_FROM` | Remitente, por ejemplo `"SABERO Academy <no-reply@saberoconsulting.com>"`. El dominio debe estar verificado en Resend. |
+| `EMAIL_ADMIN_TO` | Correo que recibe los avisos y al que responden los alumnos. |
+| `SITE_URL` | Origen público, para los enlaces y el logo de los correos. |
+
+Probar sin tocar el servidor: `node deploy/test-email.mjs tucorreo@gmail.com`. Subir la configuración: `bash deploy/push-backend-env.sh`.
+
+## Constancia de pago
+
+Cada pago confirmado recibe un número correlativo (`academy_payments.receipt_number`) y el alumno puede ver e imprimir su constancia en `/cuenta/comprobante/<id>` (diseño de comprobante, con los datos de `COMPANY` en `frontend/src/features/landing/content.ts`). **No es una boleta ni una factura electrónica de SUNAT**: esas se emiten por separado. Antes del lanzamiento, reinicia la numeración con `alter sequence public.academy_receipt_seq restart with 1;`.

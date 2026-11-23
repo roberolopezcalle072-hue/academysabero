@@ -1,0 +1,105 @@
+---
+import BaseLayout from '../../../shared/presentation/BaseLayout.astro';
+import { COMPANY } from '../../../features/landing/content';
+import { loadReceipt } from '../../../features/payments/payments-api';
+import { amountInWords } from '../../../features/payments/amount-in-words';
+import { moneyIn } from '../../../features/landing/promo';
+
+const token = Astro.locals.accessToken;
+if (!token) return Astro.redirect('/ingresar', 303);
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const receipt = await loadReceipt(token, Astro.params.id ?? '');
+if (!receipt) return Astro.redirect('/cuenta/perfil', 303);
+
+const number = receipt.receipt_number ? String(receipt.receipt_number).padStart(6, '0') : '—';
+const issued = new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Lima' }).format(new Date(receipt.paid_at));
+const issuedTime = new Intl.DateTimeFormat('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' }).format(new Date(receipt.paid_at));
+const currencyName = receipt.currency === 'PEN' ? 'SOLES' : receipt.currency === 'USD' ? 'DÓLARES AMERICANOS' : receipt.currency;
+const total = moneyIn(receipt.amount, receipt.currency).replace('US$', '$');
+const totalExact = new Intl.NumberFormat(receipt.currency === 'PEN' ? 'es-PE' : 'en-US', { style: 'currency', currency: receipt.currency }).format(receipt.amount);
+const method = receipt.provider === 'culqi' ? 'Tarjeta o billetera digital (Culqi)' : receipt.provider;
+---
+<BaseLayout title={`Constancia de pago ${number}`} privatePage>
+  <section class="shell page sheetwrap">
+    <div class="toolbar">
+      <a href="/cuenta/perfil">← Volver a mi perfil</a>
+      <button class="button primary" onclick="window.print()">Imprimir o guardar como PDF</button>
+    </div>
+
+    <article class="sheet">
+      <header class="head">
+        <div class="emitter">
+          <strong>{COMPANY.legalName || 'SABERO Academy'}</strong>
+          {COMPANY.address && <span>{COMPANY.address}</span>}
+          <span>SABERO Academy · academy.saberoconsulting.com</span>
+        </div>
+        <div class="doc">
+          <strong>CONSTANCIA DE PAGO</strong>
+          {COMPANY.ruc && <strong>RUC: {COMPANY.ruc}</strong>}
+          <strong>N.º {number}</strong>
+        </div>
+      </header>
+
+      <dl class="meta">
+        <div><dt>Fecha de pago</dt><dd>: <b>{issued}</b> {issuedTime}</dd></div>
+        <div><dt>Señor(es)</dt><dd>: <b>{receipt.full_name}</b></dd></div>
+        <div><dt>Correo</dt><dd>: {receipt.email}</dd></div>
+        <div><dt>País</dt><dd>: {receipt.country}</dd></div>
+        <div><dt>Tipo de moneda</dt><dd>: <b>{currencyName}</b></dd></div>
+        <div><dt>Forma de pago</dt><dd>: Contado — {method}</dd></div>
+        {receipt.external_id && <div><dt>Referencia</dt><dd>: {receipt.external_id}</dd></div>}
+      </dl>
+
+      <table class="items">
+        <thead><tr><th>Cantidad</th><th>Unidad de medida</th><th>Descripción</th><th class="num">Valor</th></tr></thead>
+        <tbody><tr><td>1.00</td><td>UNIDAD</td><td>Curso «{receipt.course_name}» — acceso al campus SABERO Academy</td><td class="num">{totalExact}</td></tr></tbody>
+      </table>
+
+      <div class="bottom">
+        <p class="words">{amountInWords(receipt.amount, receipt.currency)}</p>
+        <table class="totals">
+          <tbody>
+            <tr class="grand"><th>Importe total</th><td>{totalExact}</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="legal">
+        Esta es una constancia de pago generada por SABERO Academy. <strong>No reemplaza la boleta o factura electrónica</strong>, que se emite por separado conforme a las normas de la SUNAT. Conserva este documento como respaldo de tu compra.
+      </footer>
+    </article>
+  </section>
+</BaseLayout>
+<style>
+  .sheetwrap { display: grid; gap: 1rem; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .75rem; }
+  .sheet { background: #fff; color: #111; border: 1px solid #111; padding: 1.6rem 1.8rem; max-width: 52rem; width: 100%; margin-inline: auto; font-family: Arial, Helvetica, sans-serif; font-size: .92rem; display: grid; gap: 1.2rem; }
+  .head { display: flex; justify-content: space-between; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; border-bottom: 1px solid #111; padding-bottom: 1rem; }
+  .emitter { display: grid; gap: .15rem; }
+  .emitter strong { font-size: 1.05rem; }
+  .doc { border: 2px solid #111; padding: .7rem 1.4rem; text-align: center; display: grid; gap: .25rem; min-width: 14rem; }
+  .doc strong { font-size: 1rem; }
+  .meta { margin: 0; display: grid; gap: .3rem; }
+  .meta div { display: grid; grid-template-columns: 11rem 1fr; gap: .25rem; }
+  .meta dt { color: #111; }
+  .meta dd { margin: 0; }
+  .items { width: 100%; border-collapse: collapse; border: 1px solid #111; }
+  .items th, .items td { border-bottom: 1px solid #111; padding: .45rem .6rem; text-align: left; }
+  .items thead th { text-align: center; font-weight: 700; white-space: nowrap; }
+  .items .num { text-align: right; white-space: nowrap; }
+  .bottom { display: flex; justify-content: space-between; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }
+  .words { font-weight: 700; margin: 0; max-width: 26rem; align-self: center; }
+  .totals { border-collapse: collapse; min-width: 15rem; border: 1px solid #111; }
+  .totals th, .totals td { padding: .45rem .7rem; }
+  .totals th { text-align: right; font-weight: 400; }
+  .totals td { text-align: right; border-left: 1px solid #111; }
+  .totals .grand th, .totals .grand td { font-weight: 700; font-size: 1.05rem; }
+  .legal { border: 1px solid #111; padding: .7rem .9rem; font-style: italic; text-align: center; }
+  @media (max-width: 40rem) { .sheet { padding: 1rem; font-size: .85rem; } .meta div { grid-template-columns: 1fr; } .doc { min-width: 0; width: 100%; } .items { display: block; overflow-x: auto; } }
+  @media print {
+    :global(.site-header), :global(.site-footer), :global(.wa-float), .toolbar { display: none !important; }
+    :global(body) { background: #fff; }
+    .sheetwrap { padding: 0; }
+    .sheet { border-color: #000; max-width: none; }
+  }
+</style>

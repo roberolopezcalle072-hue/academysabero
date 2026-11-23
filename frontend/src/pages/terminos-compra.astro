@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../shared/presentation/BaseLayout.astro';
-import { CONTACT_EMAIL, whatsappUrl } from '../features/landing/content';
+import { CONTACT_EMAIL, COMPANY, whatsappUrl } from '../features/landing/content';
 import { PROMO, money } from '../features/landing/promo';
 Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=3600');
 ---
@@ -9,6 +9,13 @@ Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=3600');
     <p class="kicker">SABERO Consulting</p>
     <h1 class="panel-title">Términos y condiciones de compra</h1>
     <p><em>Versión v1 · Última actualización: 22 de noviembre de 2026.</em></p>
+
+    {COMPANY.legalName && (
+      <>
+        <h2>Quién vende</h2>
+        <p>El curso es ofrecido por <strong>{COMPANY.legalName}</strong>{COMPANY.ruc ? <>, RUC {COMPANY.ruc}</> : null}{COMPANY.address ? <>, con domicilio en {COMPANY.address}</> : null}, bajo la marca SABERO Academy.</p>
+      </>
+    )}
 
     <h2>1. Qué es el curso</h2>
     <p>Los cursos de SABERO Academy son formación práctica y acompañada para construir soluciones tecnológicas aplicadas a ventas: agentes de inteligencia artificial, automatización, integración con WhatsApp y Meta, mini CRM y creación de webs. Incluyen acceso al campus privado, sesiones en vivo y materiales.</p>

@@ -44,6 +44,13 @@ export class SupabaseComplaints {
     return { complaints: data, hasNext: (count ?? 0) > to + 1 };
   }
 
+  /** Datos mínimos para responder por correo (solo administradores). */
+  async get(token: string, id: string) {
+    const { data, error } = await this.client(token).from('academy_complaints').select('code,email,full_name,status').eq('id', id).maybeSingle();
+    if (error) throw error;
+    return data as { code: string; email: string; full_name: string; status: string } | null;
+  }
+
   async answer(token: string, id: string, response: string) {
     const { error } = await this.client(token).rpc('academy_answer_complaint', { p_id: id, p_response: response });
     if (error) throw error;

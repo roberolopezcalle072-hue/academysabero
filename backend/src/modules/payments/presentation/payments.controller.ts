@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { bearerToken } from '../../access/presentation/bearer-token';
 import type { PaymentProvider } from '../application/payment-provider';
+import { MailService } from '../../mail/mail.service';
 import { SupabasePayments } from '../infrastructure/supabase-payments';
 
 export const PAYMENT_PROVIDER = Symbol('PaymentProvider');
@@ -18,6 +19,7 @@ export class PaymentsController {
   constructor(
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider | null,
     private readonly payments: SupabasePayments,
+    private readonly mail: MailService,
   ) {}
 
   /** Indica si hay pasarela activa y qué datos públicos necesita el navegador. */
@@ -26,6 +28,20 @@ export class PaymentsController {
   config() {
     if (!this.provider) return { enabled: false };
     return { enabled: true, provider: this.provider.name, ...this.provider.clientConfig() };
+  }
+
+  @Get('mine')
+  @Header('Cache-Control', 'private, no-store')
+  async mine(@Headers('authorization') authorization?: string) {
+    return this.payments.mine(bearerToken(authorization)).catch(providerError);
+  }
+
+  @Get(':id/receipt')
+  @Header('Cache-Control', 'private, no-store')
+  async receipt(@Headers('authorization') authorization: string | undefined, @Param('id', ParseUUIDPipe) id: string) {
+    const row = await this.payments.receipt(bearerToken(authorization), id).catch(providerError);
+    if (!row) throw new NotFoundException();
+    return row;
   }
 
   @Post('start')
@@ -105,7 +121,31 @@ export class PaymentsController {
       this.log.error(`COBRADO SIN CONFIRMAR pago=${id} ${provider.name}=${result.externalId}: ${(error as Error).message}`);
       throw new ServiceUnavailableException({ reason: 'confirm-failed', reference: result.externalId });
     }
+    // Los correos se envían aparte: si fallan, el pago ya está confirmado y el alumno ya tiene acceso.
+    void this.notifyPaid(token, id, row, result.externalId);
     return { status: 'paid' };
+  }
+
+  private async notifyPaid(
+    token: string, id: string,
+    row: { full_name: string; email: string; course_name: string; amount: number; currency: string; country: string },
+    reference: string,
+  ) {
+    try {
+      const receipt = await this.payments.receipt(token, id).catch(() => null);
+      await Promise.all([
+        this.mail.paymentConfirmed({
+          to: row.email, name: row.full_name, course: row.course_name, amount: row.amount, currency: row.currency,
+          receiptNumber: receipt?.receipt_number ?? null, paymentId: id, paidAt: receipt?.paid_at ?? new Date().toISOString(),
+        }),
+        this.mail.adminPayment({
+          name: row.full_name, email: row.email, course: row.course_name, amount: row.amount,
+          currency: row.currency, country: row.country, reference,
+        }),
+      ]);
+    } catch (error) {
+      this.log.error(`No se pudieron enviar los correos del pago ${id}: ${(error as Error).message}`);
+    }
   }
 
   private requireProvider(): PaymentProvider {

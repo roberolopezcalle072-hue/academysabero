@@ -23,7 +23,17 @@ else
   MODE="sin pasarela"
 fi
 
-echo "Subiendo configuración al servidor (modo de pagos: $MODE)..."
+# --- Correo ---
+EMAIL_PROVIDER_V="$(get EMAIL_PROVIDER)"; RK="$(get RESEND_API_KEY)"; EF="$(get EMAIL_FROM)"
+if [ "$EMAIL_PROVIDER_V" = "resend" ]; then
+  [[ "$RK" =~ ^re_[A-Za-z0-9_]+$ ]] || { echo "RESEND_API_KEY no es válida (debe empezar con re_). ¿Pegaste tu llave?"; exit 1; }
+  [[ "$EF" == *@*.* ]] || { echo "EMAIL_FROM no parece un correo válido."; exit 1; }
+  MAIL="Resend"
+else
+  MAIL="sin correo"
+fi
+
+echo "Subiendo configuración al servidor (pagos: $MODE · correo: $MAIL)..."
 scp -i "$KEY" -o ConnectTimeout=20 "$ENV_FILE" "$HOST:/tmp/backend.env"
 ssh -i "$KEY" -o ConnectTimeout=20 "$HOST" '
   sudo install -m 0640 -o root -g sabero /tmp/backend.env /etc/sabero-academy/backend.env &&

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { ResolveAccess } from '../../access/application/resolve-access';
 import { bearerToken } from '../../access/presentation/bearer-token';
+import { MailService } from '../../mail/mail.service';
 import { SupabaseEnrollment } from '../infrastructure/supabase-enrollment';
 
 // Versión vigente de los términos de compra. Si cambian, sube este valor.
@@ -12,7 +13,11 @@ export const TERMS_VERSION = 'v1';
 
 @Controller()
 export class EnrollmentController {
-  constructor(private readonly enrollment: SupabaseEnrollment, private readonly access: ResolveAccess) {}
+  constructor(
+    private readonly enrollment: SupabaseEnrollment,
+    private readonly access: ResolveAccess,
+    private readonly mail: MailService,
+  ) {}
 
   /** Cursos publicados con precio. Disponible para cualquier cuenta con sesión. */
   @Get('catalog')
@@ -56,6 +61,7 @@ export class EnrollmentController {
       termsVersion: TERMS_VERSION,
     };
     const id = await this.enrollment.request(token, input).catch(providerError);
+    void this.mail.adminRequest({ name: input.fullName, email: emailFromToken(token), phone: input.phone, country: input.country, course: 'Solicitud de inscripción' });
     return { id };
   }
 
@@ -111,6 +117,16 @@ function phoneNumber(value: unknown): string {
   const clean = text(value, 6, 30);
   if (!/^[+\d][\d\s()-]{5,29}$/.test(clean)) throw new BadRequestException();
   return clean;
+}
+
+/** El token ya fue validado por la base de datos; aquí solo se lee el correo para mostrarlo en el aviso. */
+function emailFromToken(token: string): string {
+  try {
+    const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'));
+    return typeof claims.email === 'string' ? claims.email : '—';
+  } catch {
+    return '—';
+  }
 }
 
 function providerError(error: unknown): never {
