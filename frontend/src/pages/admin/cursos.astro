@@ -167,8 +167,6 @@ const state = (value: string) => statuses[value as keyof typeof statuses] ?? val
   .panel { border: 1px solid rgb(255 255 255 / .09); border-radius: 14px; background: rgb(255 255 255 / .025); }
   .panel > summary { display: flex; align-items: center; gap: .8rem; padding: .8rem 1rem; cursor: pointer; list-style: none; color: #e6eeff; font-weight: 600; font-size: .92rem; border-radius: 14px; }
   .panel > summary::-webkit-details-marker { display: none; }
-  .panel > summary::after { content: ""; flex: none; margin-left: auto; width: .55rem; height: .55rem; border-right: 2px solid #8fa6d1; border-bottom: 2px solid #8fa6d1; transform: rotate(45deg); transition: transform .2s; margin-bottom: .2rem; }
-  .panel[open] > summary::after { transform: rotate(-135deg); margin-bottom: -.2rem; }
   .panel > summary:hover { background: rgb(255 255 255 / .04); }
   .panel[open] > summary { border-bottom: 1px solid rgb(255 255 255 / .08); border-radius: 14px 14px 0 0; }
   .panel > summary .ttl { flex: 1; min-width: 0; font-weight: 600; }
