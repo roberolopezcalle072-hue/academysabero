@@ -3,7 +3,7 @@ export const PROMO = {
   /** Inicio del primer ciclo. Los ciclos siguientes se calculan a partir de esta fecha. */
   anchor: '2026-11-22T00:00:00-05:00',
   cycleDays: 15,
-  priceOffer: 199,
+  priceOffer: 129,
   priceRegular: 399,
   currency: 'USD',
 };
@@ -31,7 +31,7 @@ export function remaining(now = Date.now()) {
 export const money = (value: number, currency = PROMO.currency) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
 
-/** Formato de moneda sin decimales: S/ 749 o $199. */
+/** Formato de moneda sin decimales: S/ 749 o $129. */
 export function moneyIn(value: number, currency: string) {
   return new Intl.NumberFormat(currency === 'PEN' ? 'es-PE' : 'en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
 }

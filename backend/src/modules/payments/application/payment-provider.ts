@@ -5,7 +5,7 @@
  */
 export interface ChargeInput {
   paymentId: string;
-  /** Monto en unidades normales (por ejemplo 199.00). */
+  /** Monto en unidades normales (por ejemplo 129.00). */
   amount: number;
   currency: string;
   description: string;
