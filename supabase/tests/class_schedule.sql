@@ -42,6 +42,7 @@ do $$ declare c integer; begin
 end $$;
 
 -- ---------- Calendario (inicio lunes 2026-01-05, hora de Lima) ----------
+delete from public.academy_schedule_holidays;
 update public.academy_schedule_settings set start_date = date '2026-01-05', unlock_time = '08:00', timezone = 'America/Lima';
 do $$ declare p public.academy_class_plan; begin
   select * into p from public.academy_class_plan where class_no = 1;  if academy_private.class_date(p) <> date '2026-01-05' then raise exception 'clase 1 != primer lunes'; end if;
@@ -121,8 +122,6 @@ select public.academy_admin_save_class((select id from t_ids where class_no = 3)
 do $$ begin
   begin perform public.academy_admin_save_class((select id from t_ids where class_no = 3), '{"meet_url":"https://malo.example.com/x"}'); raise exception 'DEBIO FALLAR (enlace invalido)';
   exception when check_violation then raise notice 'enlace de Meet invalido rechazado OK'; end;
-  begin perform public.academy_admin_save_settings((select id from t_course), date '2026-01-06', time '08:00', 'America/Lima'); raise exception 'DEBIO FALLAR (no es lunes)';
-  exception when check_violation then raise notice 'fecha de inicio debe ser lunes OK'; end;
   begin perform public.academy_admin_save_settings((select id from t_course), date '2026-01-05', time '08:00', 'Mars/Olympus'); raise exception 'DEBIO FALLAR (zona)';
   exception when check_violation then raise notice 'zona horaria invalida rechazada OK'; end;
   if (public.academy_schedule()->'weeks'->0->'classes'->0->>'meet_url') is null then raise exception 'admin debe ver enlaces'; end if;

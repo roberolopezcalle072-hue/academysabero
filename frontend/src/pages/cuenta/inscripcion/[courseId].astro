@@ -3,6 +3,9 @@ import BaseLayout from '../../../shared/presentation/BaseLayout.astro';
 import PromoTimer from '../../../features/enrollment/PromoTimer.astro';
 import { loadCatalog, loadPaymentsConfig } from '../../../features/enrollment/infrastructure/enrollment-api';
 import { money, moneyIn } from '../../../features/landing/promo';
+import CourseRequirements from '../../../features/enrollment/CourseRequirements.astro';
+import ScheduleCalendar from '../../../features/schedule/ScheduleCalendar.astro';
+import { loadPublicSchedule, slotRange, longDate } from '../../../features/schedule/schedule-api';
 const COUNTRIES = ['Perú', 'Argentina', 'Bolivia', 'Brasil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Ecuador', 'El Salvador', 'España', 'Estados Unidos', 'Guatemala', 'Honduras', 'México', 'Nicaragua', 'Panamá', 'Paraguay', 'Puerto Rico', 'República Dominicana', 'Uruguay', 'Venezuela'];
 
 const token = Astro.locals.accessToken;
@@ -14,6 +17,8 @@ const course = catalog.find((c) => c.id === courseId);
 if (!course) return Astro.redirect('/cuenta/cursos', 303);
 if (course.enrolled) return Astro.redirect('/campus', 303);
 const payments = await loadPaymentsConfig();
+const plan = await loadPublicSchedule();
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 // Sin pago en línea, una solicitud pendiente se revisa a mano; con pago en línea se puede reintentar el pago.
 if (!payments.enabled && course.request_status === 'pending') return Astro.redirect('/cuenta?estado=solicitud-existente', 303);
 const providerNames: Record<string, string> = { culqi: 'Culqi' };
@@ -36,6 +41,15 @@ const prices = JSON.stringify({ usd: [course.price_regular, course.price_offer, 
       <p class="price"><s id="p-reg">{moneyIn(course.price_regular, course.currency)}</s><strong id="p-off">{moneyIn(course.price_offer, course.currency)}</strong><span id="p-cur">{course.currency}</span></p>
       {hasPen && <p class="pen-note" id="pen-note">En Perú pagas en soles: <b>{moneyIn(course.price_offer_pen!, 'PEN')}</b></p>}
       <PromoTimer label="Esta oferta termina en" />
+      <CourseRequirements />
+      {plan?.start_date && plan.end_date && (
+        <div class="when dk-card">
+          <h2>Cuándo empieza</h2>
+          <p class="range"><b>{cap(longDate(plan.start_date))}</b> al <b>{longDate(plan.end_date)}</b></p>
+          <p class="soft">20 clases en vivo de lunes a viernes · 2 horas por clase. Receso por Navidad y Año Nuevo.</p>
+          <ScheduleCalendar classes={plan.classes} holidays={plan.holidays} />
+        </div>
+      )}
       <div class="need dk-card">
         <h2>Para obtener algo funcional necesitarás</h2>
         <ul>
@@ -64,6 +78,19 @@ const prices = JSON.stringify({ usd: [course.price_regular, course.price_offer, 
         <option value="__otro">Otro país…</option>
       </select>
       <input id="countryOther" name="countryOther" maxlength="60" placeholder="Escribe tu país" hidden />
+      {plan && plan.slots.length > 0 && (
+        <fieldset class="slots">
+          <legend>Elige tu horario <small>(cupos limitados por horario)</small></legend>
+          {plan.slots.map((slot) => (
+            <label class={`slot ${slot.full ? 'full' : ''}`}>
+              <input type="radio" name="slot" value={slot.slot_no} required disabled={slot.full} />
+              <span class="st"><b>{slotRange(slot.starts, slot.ends)}</b><small>{slot.label}</small></span>
+              <span class="left">{slot.full ? 'Completo' : slot.remaining <= 3 ? `¡Quedan ${slot.remaining}!` : `${slot.remaining} cupos`}</span>
+            </label>
+          ))}
+          <p class="fine">Cada horario cierra al llegar a su cupo. Si se llenan, se abrirá un horario adicional.</p>
+        </fieldset>
+      )}
       <label for="notes">¿Algo que quieras contarnos? <small>(opcional)</small></label>
       <textarea id="notes" name="notes" rows="3" maxlength="1000"></textarea>
 
@@ -138,5 +165,20 @@ const prices = JSON.stringify({ usd: [course.price_regular, course.price_offer, 
   .check input { margin-top: .25rem; min-height: 0; }
   .wide { width: 100%; margin-top: .5rem; font-size: 1.05rem; }
   .fine { color: #8aa0c6; font-size: .82rem; }
+  .when { padding: 1.2rem 1.4rem; display: grid; gap: .6rem; width: 100%; max-width: 34rem; border-radius: 20px; }
+  .when h2 { font-size: 1.05rem; }
+  .range { margin: 0; color: #fff; }
+  .soft { margin: 0; color: #aebfdc; font-size: .86rem; }
+  .slots { border: 1px solid rgb(255 255 255 / .12); border-radius: 14px; padding: .9rem 1rem 1rem; display: grid; gap: .55rem; margin: .4rem 0; }
+  .slots legend { font-weight: 700; padding-inline: .4rem; }
+  .slot { display: grid; grid-template-columns: auto 1fr auto; gap: .8rem; align-items: center; padding: .75rem .9rem; border-radius: 12px; border: 1px solid rgb(255 255 255 / .14); background: rgb(255 255 255 / .03); cursor: pointer; font-weight: 400; }
+  .slot:has(input:checked) { border-color: #3b9bff; background: rgb(47 123 255 / .16); }
+  .slot.full { opacity: .5; cursor: not-allowed; }
+  .slot input { min-height: 0; accent-color: #3b9bff; }
+  .st { display: grid; gap: .1rem; }
+  .st b { color: #fff; }
+  .st small { color: #8aa0c6; }
+  .left { font-size: .8rem; font-weight: 700; color: #8ff0bb; }
+  .slot.full .left { color: #ffb4b4; }
   @media (max-width: 52rem) { .enroll { grid-template-columns: minmax(0, 1fr); } }
 </style>

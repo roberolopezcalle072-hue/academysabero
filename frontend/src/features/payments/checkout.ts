@@ -135,11 +135,16 @@ export function setupCheckout(form: HTMLFormElement, notify: (message: string, k
 
     const started = await post('/cuenta/pago/iniciar', {
       courseId: data.get('courseId'), fullName: data.get('fullName'), phone: data.get('phone'),
-      country: data.get('country') === '__otro' ? data.get('countryOther') : data.get('country'), notes: data.get('notes'), acceptTerms: data.get('acceptTerms') === 'on',
+      country: data.get('country') === '__otro' ? data.get('countryOther') : data.get('country'), notes: data.get('notes'), slot: data.get('slot') || null, acceptTerms: data.get('acceptTerms') === 'on',
     }).catch(() => null);
 
     if (!started || !started.ok) {
       busy(false);
+      if (started?.status === 409 && (started.data?.reason === 'slot-full' || started.data?.reason === 'slot-unavailable')) {
+        notify('Ese horario ya se llenó o no está disponible. Actualizamos los horarios, elige otro.', 'error');
+        window.setTimeout(() => location.reload(), 2500);
+        return;
+      }
       if (started?.status === 409) { location.href = '/campus'; return; }
       if (started?.status === 401) { location.href = '/ingresar'; return; }
       notify(started?.status === 400 ? 'Revisa los datos del formulario y acepta los términos.' : 'No se pudo iniciar el pago. Inténtalo de nuevo.', 'error');

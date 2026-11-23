@@ -1,6 +1,7 @@
 ---
 import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
-import { loadSchedule, loadStudents, saveClass, saveSettings, saveWeek, WEEKDAYS, shortDate } from '../../features/schedule/schedule-api';
+import { loadSchedule, loadStudents, saveClass, saveSettings, saveWeek, saveSlot, setHoliday, WEEKDAYS, dayMonthDate, longDate } from '../../features/schedule/schedule-api';
+import ScheduleCalendar from '../../features/schedule/ScheduleCalendar.astro';
 import { siteUrl } from '../../shared/config/server';
 
 const token = Astro.locals.accessToken;
@@ -27,6 +28,15 @@ if (Astro.request.method === 'POST') {
       course: text(form, 'course'), startDate: text(form, 'startDate'), unlockTime: text(form, 'unlockTime'), timezone: text(form, 'timezone'),
     }), '#calendario');
   }
+  if (action === 'slot' && UUID.test(text(form, 'course')) && /^[1-9]$/.test(text(form, 'slot'))) {
+    return back(await saveSlot(token, Number(text(form, 'slot')), {
+      course: text(form, 'course'), label: text(form, 'label'), starts: text(form, 'starts'), ends: text(form, 'ends'),
+      meet: text(form, 'meet'), capacity: Number(text(form, 'capacity')), tier: Number(text(form, 'tier')), active: form.get('active') === 'on',
+    }), '#horarios');
+  }
+  if (action === 'holiday' && UUID.test(text(form, 'course')) && /^\d{4}-\d{2}-\d{2}$/.test(text(form, 'day'))) {
+    return back(await setHoliday(token, { course: text(form, 'course'), day: text(form, 'day'), label: text(form, 'label'), remove: form.get('remove') === '1' }), '#feriados');
+  }
   if (action === 'week' && UUID.test(text(form, 'course')) && /^\d{1,2}$/.test(text(form, 'week'))) {
     const topics = [...form.keys()].filter((k) => k.startsWith('topic_')).map((k) => ({ topic_no: Number(k.slice(6)), title: text(form, k) }));
     return back(await saveWeek(token, Number(text(form, 'week')), {
@@ -45,6 +55,8 @@ const errorText = error === '400'
   ? 'No se guardó: revisa los datos. La fecha de inicio debe ser un lunes; el enlace de reunión debe ser de Google Meet (https://meet.google.com/…) y los de grabación y material de Google Drive o Docs.'
   : error ? 'No se pudo guardar. Inténtalo de nuevo.' : '';
 const zones = ['America/Lima', 'America/Bogota', 'America/Guayaquil', 'America/Mexico_City', 'America/Santiago', 'America/Argentina/Buenos_Aires', 'America/New_York', 'Europe/Madrid'];
+const allClasses = data?.weeks.flatMap((w) => w.classes) ?? [];
+const calendarEnd = allClasses.map((c) => c.date).filter(Boolean).sort().pop() ?? null;
 const phaseLabel: Record<string, string> = { executed: 'Ejecutada', today: 'Hoy', next: 'Próxima', pending: 'Pendiente' };
 const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date(iso));
 ---
@@ -67,9 +79,9 @@ const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medi
           <form method="post" class="grid">
             <input type="hidden" name="action" value="settings" />
             <input type="hidden" name="course" value={data.course.id} />
-            <label>Primer lunes (inicio de la clase 1)
+            <label>Fecha de la primera clase
               <input type="date" name="startDate" value={data.settings.start_date ?? ''} />
-              <small>Debe ser un lunes. Sin fecha, ninguna clase se abre sola.</small></label>
+              <small>Cualquier día de lunes a viernes. Los fines de semana y feriados se saltan solos. Sin fecha, ninguna clase se abre sola.</small></label>
             <label>Hora en que se abre cada clase
               <input type="time" name="unlockTime" value={data.settings.unlock_time} required />
               <small>Es la hora de publicación; no tiene que coincidir con el horario de la reunión.</small></label>
@@ -77,7 +89,68 @@ const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medi
               <select name="timezone">{[...new Set([data.settings.timezone, ...zones])].map((z) => <option value={z} selected={z === data.settings.timezone}>{z}</option>)}</select></label>
             <button class="button primary">Guardar calendario</button>
           </form>
-          <p class="meta">Se cuentan solo lunes a viernes, sin feriados automáticos. La clase 20 cae el viernes de la cuarta semana.</p>
+          <p class="meta">Se cuentan solo lunes a viernes y se saltan los feriados de abajo.{calendarEnd ? ` Con estas fechas, la última clase (la 20) cae el ${longDate(calendarEnd)}.` : ''}</p>
+        </section>
+
+        <section id="horarios" class="card">
+          <h2>Horarios y cupos</h2>
+          <p class="meta">Cada horario tiene su propio enlace de Meet y un cupo. Los horarios de <b>prioridad 1</b> se ofrecen primero; los de prioridad 2 (por ejemplo la mañana) aparecen solo cuando los de prioridad 1 están llenos. Al llegar al cupo, el horario se cierra.</p>
+          <div class="slotgrid">
+            {(data.slots ?? []).map((sl) => (
+              <form method="post" class="slotform">
+                <input type="hidden" name="action" value="slot" />
+                <input type="hidden" name="course" value={data.course.id} />
+                <input type="hidden" name="slot" value={sl.slot_no} />
+                <header><b>{sl.label}</b><span class={`tag ${sl.taken >= sl.capacity ? 'closed' : 'open'}`}>{sl.taken}/{sl.capacity} cupos</span></header>
+                <label>Nombre<input name="label" value={sl.label} maxlength="40" required /></label>
+                <div class="two">
+                  <label>Desde<input type="time" name="starts" value={sl.starts} required /></label>
+                  <label>Hasta<input type="time" name="ends" value={sl.ends} required /></label>
+                </div>
+                <label>Enlace de Google Meet de este horario<input type="url" name="meet" value={sl.meet_url ?? ''} placeholder="https://meet.google.com/abc-defg-hij" maxlength="2048" /></label>
+                <div class="two">
+                  <label>Cupo<input type="number" name="capacity" min="1" max="500" value={sl.capacity} required /></label>
+                  <label>Prioridad
+                    <select name="tier">
+                      <option value="1" selected={sl.tier === 1}>1 · se ofrece primero</option>
+                      <option value="2" selected={sl.tier === 2}>2 · solo si los de 1 se llenan</option>
+                      <option value="3" selected={sl.tier === 3}>3 · después</option>
+                    </select>
+                  </label>
+                </div>
+                <label class="check"><input type="checkbox" name="active" checked={sl.active} /> Horario activo</label>
+                <button class="button primary">Guardar horario</button>
+              </form>
+            ))}
+          </div>
+        </section>
+
+        <section id="feriados" class="card">
+          <h2>Calendario, feriados y receso</h2>
+          <ScheduleCalendar classes={allClasses.map((c) => ({ class_no: c.class_no, date: c.date }))} holidays={data.holidays} done={allClasses.filter((c) => c.executed).map((c) => c.class_no)} next={data.next?.class_no ?? null} />
+          <ul class="holidays">
+            {data.holidays.map((h) => (
+              <li>
+                <span><b>{dayMonthDate(h.day)}</b> · {h.label}</span>
+                <form method="post">
+                  <input type="hidden" name="action" value="holiday" />
+                  <input type="hidden" name="course" value={data.course.id} />
+                  <input type="hidden" name="day" value={h.day} />
+                  <input type="hidden" name="remove" value="1" />
+                  <button class="button secondary small">Quitar</button>
+                </form>
+              </li>
+            ))}
+            {data.holidays.length === 0 && <li class="meta">No hay feriados cargados.</li>}
+          </ul>
+          <form method="post" class="addholiday">
+            <input type="hidden" name="action" value="holiday" />
+            <input type="hidden" name="course" value={data.course.id} />
+            <label>Fecha<input type="date" name="day" required /></label>
+            <label>Motivo<input name="label" maxlength="80" placeholder="Feriado" /></label>
+            <button class="button primary">Agregar feriado</button>
+          </form>
+          <p class="meta">Al agregar o quitar un feriado, las clases siguientes se corren automáticamente.</p>
         </section>
 
         <section class="card">
@@ -99,7 +172,7 @@ const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medi
                 <details class="class" id={`clase-${c.class_no}`}>
                   <summary>
                     <span class="num">{c.class_no}</span>
-                    <span><b>{c.title}</b><br /><small>{WEEKDAYS[c.weekday - 1]}{c.date ? ` · ${shortDate(c.date)}` : ''}</small></span>
+                    <span><b>{c.title}</b><br /><small>{WEEKDAYS[c.weekday - 1]}{c.date ? ` · ${dayMonthDate(c.date)}` : ''}</small></span>
                     <span class="tags">
                       <span class={`tag ${c.phase}`}>{phaseLabel[c.phase]}</span>
                       <span class={`tag ${c.unlocked ? 'open' : 'closed'}`}>{c.unlocked ? 'Abierta' : 'Cerrada'}</span>
@@ -204,8 +277,17 @@ const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medi
   .tag.executed, .tag.open { background: #e6f4ea; border-color: #9bd1ad; color: #14653a; }
   .tag.today, .tag.next { background: #e3efff; border-color: #9cc3f5; color: #164a9c; }
   .tag.closed { color: var(--muted); }
+  .slotgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1rem; }
+  .slotform { display: grid; gap: .6rem; border: 1px solid rgb(255 255 255 / .1); border-radius: 14px; padding: 1rem; background: rgb(255 255 255 / .02); align-content: start; }
+  .slotform header { display: flex; justify-content: space-between; align-items: center; gap: .6rem; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+  .check { display: flex; align-items: center; gap: .5rem; font-weight: 500; }
+  .holidays { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+  .holidays li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .5rem .8rem; border: 1px solid rgb(255 255 255 / .08); border-radius: 10px; }
+  .addholiday { display: grid; grid-template-columns: 11rem 1fr auto; gap: .7rem; align-items: end; }
+  .button.small { min-height: 34px; padding: .3rem .9rem; font-size: .82rem; }
   .tablewrap { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: .88rem; }
   th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  @media (max-width: 40rem) { .card { padding: .9rem; } .class > summary { grid-template-columns: auto 1fr; } .tags { grid-column: 1 / -1; justify-content: flex-start; } }
+  @media (max-width: 40rem) { .addholiday { grid-template-columns: minmax(0, 1fr); } .card { padding: .9rem; } .class > summary { grid-template-columns: auto 1fr; } .tags { grid-column: 1 / -1; justify-content: flex-start; } }
 </style>

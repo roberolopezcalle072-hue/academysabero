@@ -40,8 +40,26 @@ export interface ScheduleWeek {
   classes: ScheduleClass[];
 }
 
+export interface Holiday { day: string; label: string }
+
+export interface SlotInfo { slot_no: number; label: string; starts: string; ends: string; meet_url: string | null }
+
+export interface AdminSlot extends SlotInfo { capacity: number; tier: number; active: boolean; taken: number }
+
+export interface PublicSchedule {
+  course: { id: string; name: string };
+  start_date: string | null;
+  end_date: string | null;
+  classes: { class_no: number; date: string | null }[];
+  holidays: Holiday[];
+  slots: { slot_no: number; label: string; starts: string; ends: string; capacity: number; remaining: number; full: boolean }[];
+}
+
 export interface Schedule {
   course: { id: string; name: string };
+  holidays: Holiday[];
+  slot: SlotInfo | null;
+  slots: AdminSlot[] | null;
   admin: boolean;
   settings: { start_date: string | null; unlock_time: string; timezone: string };
   total: number;
@@ -67,6 +85,31 @@ export async function loadSchedule(token: string, course?: string): Promise<Sche
     return response.ok ? await response.json() as Schedule : null;
   } catch {
     return null;
+  }
+}
+
+export async function loadPublicSchedule(): Promise<PublicSchedule | null> {
+  try {
+    const response = await apiRequest('/schedule/public');
+    return response.ok ? await response.json() as PublicSchedule : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveSlot(token: string, slot: number, body: object): Promise<number> {
+  try {
+    return (await apiRequest(`/admin/schedule/slots/${slot}`, token, body)).status;
+  } catch {
+    return 503;
+  }
+}
+
+export async function setHoliday(token: string, body: object): Promise<number> {
+  try {
+    return (await apiRequest('/admin/schedule/holidays', token, body)).status;
+  } catch {
+    return 503;
   }
 }
 
@@ -121,3 +164,11 @@ export const longDate = (iso: string) => day.format(new Date(`${iso}T12:00:00Z`)
 export const shortDate = (iso: string) => dayShort.format(new Date(`${iso}T12:00:00Z`));
 export const dayMonthDate = (iso: string) => dayMonth.format(new Date(`${iso}T12:00:00Z`)).replace('.', '');
 export const lines = (text?: string) => (text ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
+
+/** "15:00" -> "3:00 p. m." */
+export function clock(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const suffix = h >= 12 ? 'p. m.' : 'a. m.';
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${suffix}`;
+}
+export const slotRange = (starts: string, ends: string) => `${clock(starts)} – ${clock(ends)}`;

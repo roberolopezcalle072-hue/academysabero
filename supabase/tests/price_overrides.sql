@@ -1,6 +1,7 @@
 -- Precio especial por correo (todo se revierte). Ejecutar con: psql -v ON_ERROR_STOP=1 -f supabase/tests/price_overrides.sql
 \set ON_ERROR_STOP on
 begin;
+update public.academy_course_slots set active = false;  -- estas pruebas no dependen de los turnos
 insert into auth.users (id, email, email_confirmed_at, raw_user_meta_data, aud, role, instance_id) values
  ('11111111-1111-1111-1111-111111111111','prueba@test.com', now(), '{"full_name":"Prueba"}', 'authenticated','authenticated','00000000-0000-0000-0000-000000000000'),
  ('22222222-2222-2222-2222-222222222222','otro@test.com', now(), '{"full_name":"Otro"}', 'authenticated','authenticated','00000000-0000-0000-0000-000000000000');

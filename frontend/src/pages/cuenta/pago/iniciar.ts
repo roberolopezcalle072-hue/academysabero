@@ -16,7 +16,7 @@ export const POST: APIRoute = async (context) => {
   try {
     const response = await apiRequest('/payments/start', token, {
       courseId: body.courseId, fullName: body.fullName, phone: body.phone, country: body.country,
-      notes: body.notes, acceptTerms: body.acceptTerms === true,
+      notes: body.notes, slot: body.slot ?? undefined, acceptTerms: body.acceptTerms === true,
     }, 15000);
     return json(await response.json().catch(() => ({})), response.status);
   } catch {

@@ -50,7 +50,7 @@ export class PaymentsController {
   async start(@Headers('authorization') authorization: string | undefined, @Body() body: Record<string, unknown>) {
     const token = bearerToken(authorization);
     const provider = this.requireProvider();
-    const { courseId, fullName, phone, country, notes, acceptTerms } = body ?? {};
+    const { courseId, fullName, phone, country, notes, acceptTerms, slot } = body ?? {};
     if (acceptTerms !== true) throw new BadRequestException({ reason: 'terms-required' });
     if (typeof courseId !== 'string' || !UUID.test(courseId)) throw new BadRequestException();
 
@@ -61,7 +61,8 @@ export class PaymentsController {
       country: text(country, 2, 60),
       notes: notes === undefined || notes === null || notes === '' ? null : text(notes, 1, 1000),
       termsVersion: TERMS_VERSION,
-    }, provider.name).catch(providerError);
+      slot: slot === undefined || slot === null || slot === '' ? null : validSlot(slot),
+    }, provider.name).catch(startError);
 
     return {
       paymentId: started.payment_id,
@@ -198,6 +199,20 @@ function validAuthentication(value: unknown): Authentication3DS {
     protocolVersion: field('protocolVersion', /^\d+(\.\d+){0,2}$/)!,
     directoryServerTransactionId: field('directoryServerTransactionId', /^[A-Za-z0-9-]{1,100}$/, true),
   };
+}
+
+function validSlot(value: unknown): number {
+  const n = typeof value === 'string' ? Number(value) : value;
+  if (typeof n !== 'number' || !Number.isInteger(n) || n < 1 || n > 9) throw new BadRequestException();
+  return n;
+}
+
+/** Errores propios del inicio del pago: turno lleno o no disponible se explican al alumno. */
+function startError(error: unknown): never {
+  const e = typeof error === 'object' && error !== null ? error as { code?: string; message?: string } : {};
+  if (e.code === '54000') throw new ConflictException({ reason: 'slot-full' });
+  if (e.code === '23514' && /slot/i.test(e.message ?? '')) throw new ConflictException({ reason: 'slot-unavailable' });
+  return providerError(error);
 }
 
 function phoneNumber(value: unknown): string {

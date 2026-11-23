@@ -10,6 +10,30 @@ export class SupabaseSchedule {
     return data;
   }
 
+  /** Fechas, feriados y turnos disponibles (sin contenido ni enlaces): pública. */
+  async publicSchedule(): Promise<unknown> {
+    const { data, error } = await createAcademyClient(this.url, this.key).rpc('academy_public_schedule', { p_course: null });
+    if (error) throw error;
+    return data;
+  }
+
+  async saveSlot(token: string, course: string, slot: number, v: {
+    label: string; starts: string; ends: string; meet: string; capacity: number; tier: number; active: boolean;
+  }) {
+    const { error } = await this.client(token).rpc('academy_admin_save_slot', {
+      p_course: course, p_slot: slot, p_label: v.label, p_starts: v.starts, p_ends: v.ends, p_meet: v.meet,
+      p_capacity: v.capacity, p_tier: v.tier, p_active: v.active,
+    });
+    if (error) throw error;
+  }
+
+  async setHoliday(token: string, course: string, day: string, label: string, remove: boolean) {
+    const { error } = await this.client(token).rpc('academy_admin_set_holiday', {
+      p_course: course, p_day: day, p_label: label, p_remove: remove,
+    });
+    if (error) throw error;
+  }
+
   async setDone(token: string, classId: string, done: boolean) {
     const { error } = await this.client(token).rpc('academy_set_class_done', { p_class: classId, p_done: done });
     if (error) throw error;

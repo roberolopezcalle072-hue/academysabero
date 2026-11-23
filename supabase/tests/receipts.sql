@@ -2,6 +2,7 @@
 -- Ejecutar con: psql -v ON_ERROR_STOP=1 -f supabase/tests/receipts.sql
 \set ON_ERROR_STOP on
 begin;
+update public.academy_course_slots set active = false;  -- estas pruebas no dependen de los turnos
 delete from public.academy_internal_secrets where name = 'payments';
 insert into public.academy_internal_secrets(name, digest) values ('payments', encode(sha256(convert_to('secreto-de-prueba','UTF8')),'hex'));
 insert into auth.users (id, email, email_confirmed_at, raw_user_meta_data, aud, role, instance_id)

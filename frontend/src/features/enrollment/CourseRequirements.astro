@@ -1,0 +1,59 @@
+---
+interface Props { id?: string; label?: string }
+const { id = 'requisitos', label = 'Lo que necesitas para este curso' } = Astro.props;
+---
+<button type="button" class="req-open" data-open={id}>
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v.01M11 12h1v4h1" /></svg>
+  <span>{label}</span>
+</button>
+<dialog id={id} class="req-dialog" aria-labelledby={`${id}-title`}>
+  <article>
+    <h3 id={`${id}-title`}>Antes de inscribirte, conoce lo que necesitarás</h3>
+
+    <p>En Sabero Academy aprenderás a implementar tu propio mini CRM con un agente de inteligencia artificial conectado a WhatsApp, utilizando infraestructura contratada a tu nombre.</p>
+
+    <p><strong>¿Qué necesitarás contratar?</strong></p>
+    <ul>
+      <li>Un servidor VPS. Recomendamos Contabo o RackNerd.</li>
+      <li>Un dominio propio. Recomendamos Namecheap, aunque puedes elegir cualquier proveedor.</li>
+      <li>Acceso a un proveedor de inteligencia artificial mediante API.</li>
+      <li>Una cuenta y un número compatibles con WhatsApp Business Platform, sujetos a los requisitos de Meta.</li>
+    </ul>
+
+    <p><strong>Importante:</strong> el precio del curso corresponde a la capacitación y los recursos educativos incluidos. Los servicios externos se contratan y pagan directamente a sus respectivos proveedores.</p>
+
+    <p>Te enseñaremos paso a paso a configurar cada servicio durante las clases. Algunos proveedores pueden requerir verificaciones, aprobaciones o pagos adicionales.</p>
+
+    <p>Al finalizar, nuestro objetivo es que tengas tu propio sistema comercial con mini CRM y agente IA, bajo tu administración.</p>
+
+    <p><strong>Consulta estos requisitos antes de realizar tu inscripción.</strong></p>
+
+    <form method="dialog"><button class="req-close">Entendido</button></form>
+  </article>
+</dialog>
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.req-open').forEach((button) => {
+    button.addEventListener('click', () => {
+      const dialog = document.getElementById(button.dataset.open ?? '') as HTMLDialogElement | null;
+      dialog?.showModal();
+    });
+  });
+  document.querySelectorAll<HTMLDialogElement>('.req-dialog').forEach((dialog) => {
+    // Cierra al hacer clic fuera de la tarjeta.
+    dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
+  });
+</script>
+<style>
+  .req-open { display: inline-flex; align-items: center; gap: .6rem; padding: .65rem 1.1rem; border-radius: 12px; font: inherit; font-weight: 600; font-size: .9rem; color: #e6eeff; cursor: pointer; border: 1px solid rgb(92 200 255 / .4); background: rgb(47 123 255 / .12); transition: background .15s, border-color .15s; }
+  .req-open:hover { background: rgb(47 123 255 / .22); border-color: rgb(92 200 255 / .7); }
+  .req-open svg { color: #5cc8ff; flex: none; }
+  .req-dialog { border: 0; padding: 0; background: transparent; width: min(40rem, calc(100% - 2rem)); max-height: calc(100% - 2rem); color: #dbe7ff; }
+  .req-dialog::backdrop { background: rgb(2 8 28 / .72); backdrop-filter: blur(3px); }
+  .req-dialog article { border: 1px solid rgb(92 200 255 / .3); border-radius: 20px; padding: 1.6rem 1.7rem 1.4rem; background: linear-gradient(180deg, #0c2160, #071545); box-shadow: 0 30px 80px -20px rgb(0 0 0 / .9); display: grid; gap: .8rem; max-height: calc(100vh - 2rem); overflow: auto; }
+  .req-dialog h3 { margin: 0 0 .2rem; font-size: 1.25rem; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+  .req-dialog p { margin: 0; line-height: 1.6; font-size: .95rem; }
+  .req-dialog strong { color: #fff; }
+  .req-dialog ul { margin: 0; padding-left: 1.2rem; display: grid; gap: .45rem; line-height: 1.55; font-size: .95rem; }
+  .req-close { margin-top: .4rem; min-height: 44px; padding: .6rem 1.6rem; border: 0; border-radius: 10px; font: inherit; font-weight: 600; color: #fff; cursor: pointer; background: linear-gradient(180deg, #3b9bff, #1c63ea); box-shadow: 0 8px 22px -8px rgb(47 123 255 / .8); }
+  @media (max-width: 40rem) { .req-dialog article { padding: 1.2rem; } .req-open { width: 100%; justify-content: center; } }
+</style>

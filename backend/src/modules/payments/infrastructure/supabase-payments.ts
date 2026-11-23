@@ -21,6 +21,7 @@ export interface StartInput {
   country: string;
   notes: string | null;
   termsVersion: string;
+  slot: number | null;
 }
 
 export class SupabasePayments {
@@ -33,7 +34,7 @@ export class SupabasePayments {
   async start(token: string, input: StartInput, provider: string): Promise<StartedPayment> {
     const { data, error } = await this.client(token).rpc('academy_start_payment', {
       p_course: input.courseId, p_name: input.fullName, p_phone: input.phone, p_country: input.country,
-      p_notes: input.notes, p_terms_version: input.termsVersion, p_provider: provider,
+      p_notes: input.notes, p_terms_version: input.termsVersion, p_provider: provider, p_slot: input.slot,
     });
     if (error) throw error;
     const row = Array.isArray(data) ? data[0] : data;

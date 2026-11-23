@@ -28,6 +28,15 @@ export class ScheduleController {
     return data;
   }
 
+  /** Calendario y turnos que se ofrecen (sin sesión: se ve antes de inscribirse). */
+  @Get('schedule/public')
+  @Header('Cache-Control', 'public, max-age=30')
+  async publicSchedule() {
+    const data = await this.schedule.publicSchedule().catch(failure);
+    if (!data) throw new NotFoundException();
+    return data;
+  }
+
   @Post('schedule/classes/:id/done')
   @HttpCode(200)
   @Header('Cache-Control', 'private, no-store')
@@ -97,6 +106,46 @@ export class ScheduleController {
       return { topic_no: item.topic_no as number, title: item.title };
     });
     await this.schedule.saveWeek(token, course, Number(week), title, objective, clean).catch(failure);
+    return { saved: true };
+  }
+
+  @Post('admin/schedule/slots/:slot')
+  @HttpCode(200)
+  @Header('Cache-Control', 'private, no-store')
+  async saveSlot(@Headers('authorization') authorization: string | undefined,
+                 @Param('slot') slot: string, @Body() body: Record<string, unknown>) {
+    const token = await this.admin(authorization);
+    const course = body?.course;
+    if (typeof course !== 'string' || !UUID.test(course) || !/^[1-9]$/.test(slot)) throw new BadRequestException();
+    const time = (value: unknown) => {
+      if (typeof value !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) throw new BadRequestException();
+      return value;
+    };
+    const label = typeof body.label === 'string' && body.label.trim() && body.label.length <= 40 ? body.label.trim() : null;
+    const capacity = Number(body.capacity);
+    const tier = Number(body.tier);
+    const meet = body.meet === undefined || body.meet === null ? '' : body.meet;
+    if (label === null || typeof meet !== 'string' || meet.length > 2048 ||
+        !Number.isInteger(capacity) || capacity < 1 || capacity > 500 || !Number.isInteger(tier) || tier < 1 || tier > 5) {
+      throw new BadRequestException();
+    }
+    await this.schedule.saveSlot(token, course, Number(slot), {
+      label, starts: time(body.starts), ends: time(body.ends), meet, capacity, tier, active: body.active === true,
+    }).catch(failure);
+    return { saved: true };
+  }
+
+  @Post('admin/schedule/holidays')
+  @HttpCode(200)
+  @Header('Cache-Control', 'private, no-store')
+  async setHoliday(@Headers('authorization') authorization: string | undefined, @Body() body: Record<string, unknown>) {
+    const token = await this.admin(authorization);
+    const { course, day, label } = body ?? {};
+    if (typeof course !== 'string' || !UUID.test(course) || typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      throw new BadRequestException();
+    }
+    const text = typeof label === 'string' && label.length <= 80 ? label.trim() : '';
+    await this.schedule.setHoliday(token, course, day, text, body.remove === true).catch(failure);
     return { saved: true };
   }
 
