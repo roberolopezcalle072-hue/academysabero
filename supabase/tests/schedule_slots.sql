@@ -36,9 +36,15 @@ do $$ declare p public.academy_class_plan; r record; begin
   if exists (select 1 from public.academy_class_plan c where extract(isodow from academy_private.class_date(c)) > 5) then raise exception 'hay clases en fin de semana'; end if;
   if exists (select 1 from public.academy_class_plan c join public.academy_schedule_holidays h on h.day = academy_private.class_date(c)) then raise exception 'hay clases en feriado'; end if;
   if (select count(distinct academy_private.class_date(c)) from public.academy_class_plan c) <> 20 then raise exception 'fechas repetidas'; end if;
-  if (select count(*) from public.academy_schedule_holidays) <> 7 then raise exception 'deben ser 7 dias sin clase'; end if;
+  if (select count(*) from public.academy_schedule_holidays) <> 4 then raise exception 'deben ser 4 dias marcados (24, 25 y 31 dic, 1 ene)'; end if;
   if not exists (select 1 from public.academy_schedule_holidays where day = date '2026-12-25' and label = 'Navidad') or not exists (select 1 from public.academy_schedule_holidays where day = date '2027-01-01' and label = 'Año Nuevo') then raise exception 'Navidad o Ano Nuevo sin marcar'; end if;
-  raise notice 'calendario 15 dic al 20 ene con receso de fin de ano OK';
+  if not exists (select 1 from public.academy_schedule_holidays where day = date '2026-12-24' and label = 'Día reservado sin clases') then raise exception '24 dic debe decir dia reservado'; end if;
+  if (select string_agg(to_char(academy_private.class_date(c), 'MM-DD'), ' ' order by c.class_no) from public.academy_class_plan c)
+     <> '12-15 12-16 12-17 12-18 12-21 12-22 12-23 12-28 12-29 12-30 01-04 01-05 01-06 01-07 01-08 01-12 01-13 01-18 01-19 01-20' then
+    raise exception 'las 20 fechas no coinciden con la malla';
+  end if;
+  if exists (select 1 from public.academy_class_plan where description <> '' or objectives <> '') then raise exception 'no deben inventarse descripciones ni objetivos'; end if;
+  raise notice 'las 20 fechas exactas de la malla y solo 4 dias marcados OK';
 end $$;
 
 -- ---------- Turnos visibles: tardes primero; la mañana solo si las tardes se llenan ----------
@@ -47,7 +53,7 @@ do $$ declare s jsonb; begin
   if (select count(*) from jsonb_array_elements(s->'slots')) <> 2 then raise exception 'solo deben verse 2 turnos de tarde: %', s->'slots'; end if;
   if exists (select 1 from jsonb_array_elements(s->'slots') x where x->>'label' = 'Mañana') then raise exception 'la mañana no debe verse aun'; end if;
   if (s->>'start_date') <> '2026-12-15' or (s->>'end_date') <> '2027-01-20' then raise exception 'inicio/fin mal: % %', s->>'start_date', s->>'end_date'; end if;
-  if jsonb_array_length(s->'holidays') <> 7 or jsonb_array_length(s->'classes') <> 20 then raise exception 'feriados/clases mal'; end if;
+  if jsonb_array_length(s->'holidays') <> 4 or jsonb_array_length(s->'classes') <> 20 then raise exception 'feriados/clases mal'; end if;
   -- La malla es publica (4 modulos y 20 clases) pero sin enlaces ni materiales
   if jsonb_array_length(s->'weeks') <> 4 then raise exception 'la malla publica debe tener 4 modulos'; end if;
   if (select sum(jsonb_array_length(w->'classes')) from jsonb_array_elements(s->'weeks') w) <> 20 then raise exception 'la malla publica debe tener 20 clases'; end if;
@@ -118,6 +124,7 @@ create temp table t_carla as select * from public.academy_start_payment((select 
 reset role;
 
 -- ---------- El alumno ve su turno y el enlace de Meet del turno ----------
+update public.academy_class_plan set class_day = null;  -- desde aqui se prueba el calculo automatico
 update public.academy_course_slots set meet_url = 'https://meet.google.com/aaa-bbbb-ccc' where slot_no = 1;
 update public.academy_schedule_settings set start_date = date '2026-01-05';
 update public.academy_class_plan set meet_url = null;

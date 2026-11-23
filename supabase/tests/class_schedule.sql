@@ -45,6 +45,7 @@ end $$;
 
 -- ---------- Calendario (inicio lunes 2026-01-05, hora de Lima) ----------
 delete from public.academy_schedule_holidays;
+update public.academy_class_plan set class_day = null;  -- este bloque prueba el calculo automatico del calendario
 update public.academy_schedule_settings set start_date = date '2026-01-05', unlock_time = '08:00', timezone = 'America/Lima';
 do $$ declare p public.academy_class_plan; begin
   select * into p from public.academy_class_plan where class_no = 1;  if academy_private.class_date(p) <> date '2026-01-05' then raise exception 'clase 1 != primer lunes'; end if;

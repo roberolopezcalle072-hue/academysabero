@@ -18,7 +18,7 @@ if (Astro.request.method === 'POST') {
 
   if (action === 'class' && UUID.test(text(form, 'id'))) {
     const data: Record<string, string> = {};
-    for (const key of ['title', 'description', 'objectives', 'content', 'activity', 'outcome', 'meet_url', 'recording_url', 'material_url', 'access', 'held']) {
+    for (const key of ['title', 'description', 'objectives', 'content', 'activity', 'outcome', 'meet_url', 'recording_url', 'material_url', 'class_day', 'access', 'held']) {
       if (form.has(key)) data[key] = text(form, key);
     }
     return back(await saveClass(token, text(form, 'id'), data), `#clase-${text(form, 'no').replace(/\D/g, '')}`);
@@ -208,6 +208,7 @@ const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medi
                           <option value="pending" selected={c.held === 'pending'}>Marcar como pendiente</option>
                         </select></label>
                     </fieldset>
+                    <label>Fecha de la clase<input type="date" name="class_day" value={c.date ?? ''} /><small>Si la dejas vacía, se calcula sola según el calendario y los feriados.</small></label>
                     <label>Título<input name="title" value={c.title} maxlength="160" required /></label>
                     <label>Descripción<textarea name="description" rows="2" maxlength="1000">{c.description}</textarea></label>
                     <label>Objetivos de aprendizaje (uno por línea)<textarea name="objectives" rows="4" maxlength="3000">{c.objectives}</textarea></label>

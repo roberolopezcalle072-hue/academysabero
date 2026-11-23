@@ -7,10 +7,10 @@ import { bearerToken } from '../access/presentation/bearer-token';
 import { SupabaseSchedule } from './supabase-schedule';
 
 const CLASS_TEXT = ['title', 'description', 'objectives', 'content', 'activity', 'outcome'] as const;
-const CLASS_LINKS = ['meet_url', 'recording_url', 'material_url'] as const;
+const CLASS_LINKS = ['meet_url', 'recording_url', 'material_url', 'class_day'] as const;
 const LIMITS: Record<string, number> = {
   title: 160, description: 1000, objectives: 3000, content: 3000, activity: 1000, outcome: 1000,
-  meet_url: 2048, recording_url: 2048, material_url: 2048,
+  meet_url: 2048, recording_url: 2048, material_url: 2048, class_day: 10,
 };
 
 @Controller()
