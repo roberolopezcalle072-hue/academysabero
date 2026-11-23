@@ -1,124 +1,142 @@
 ---
 import BaseLayout from '../../shared/presentation/BaseLayout.astro';
-import { readDashboard, submitAccessChange } from '../../features/access-admin/infrastructure/admin-api';
-import { siteUrl } from '../../shared/config/server';
+import AdminNavigation from '../../features/access-admin/presentation/AdminNavigation.astro';
+import { loadSummary } from '../../features/access-admin/infrastructure/summary-api';
+import { moneyIn } from '../../features/landing/promo';
 
 const token = Astro.locals.accessToken;
 if (!token) return Astro.redirect('/ingresar', 303);
-const pageParam = Astro.url.searchParams.get('page') ?? '1';
-const page = /^[1-9]\d{0,5}$/.test(pageParam) ? Number(pageParam) : 1;
-const currentPage = `/admin?page=${page}`;
-let message = Astro.url.searchParams.get('guardado') === '1' ? 'Cambios guardados.' : '';
-let code: string | null = null;
-
-if (Astro.request.method === 'POST') {
-  if (Astro.request.headers.get('origin') !== siteUrl().origin) return new Response(null, { status: 403 });
-  try {
-    const result = await submitAccessChange(token, await Astro.request.formData());
-    if (result.ok) {
-      const payload = await result.json();
-      code = typeof payload.code === 'string' ? payload.code : null;
-      if (!code) return Astro.redirect(`${currentPage}&guardado=1`, 303);
-      message = 'Matrícula asociada. Comparte el código con el alumno por un canal privado.';
-    } else {
-      Astro.response.status = result.status;
-      message = result.status === 409
-        ? 'No se pudo asociar la matrícula. Revisa que el correo esté autorizado y que la asociación no exista.'
-        : 'No se pudo guardar el cambio. Revisa los datos e inténtalo de nuevo.';
-    }
-  } catch {
-    Astro.response.status = 503;
-    message = 'El servicio de administración no está disponible.';
-  }
-}
-
-const data = await readDashboard(token, page).catch(() => null);
-if (!data && Astro.response.status === 200) Astro.response.status = 503;
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const data = await loadSummary(token);
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+const today = cap(new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Lima' }).format(new Date()));
+const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeZone: 'America/Lima' }).format(new Date(iso));
+const revenue = data?.revenue.length ? data.revenue.map((r) => moneyIn(r.total, r.currency)).join(' + ') : '—';
+const todo = data ? [
+  { n: data.open_inquiries, label: 'Consultas por responder', href: '/admin/consultas' },
+  { n: data.open_complaints, label: 'Reclamos abiertos', href: '/admin/reclamos' },
+  { n: data.pending_requests, label: 'Solicitudes sin pago', href: '/admin/solicitudes' },
+] : [];
+const sections = [
+  { href: '/admin/cronograma', title: 'Cronograma', text: 'Fecha de inicio, enlaces de Meet y grabaciones de las 20 clases.' },
+  { href: '/admin/consultas', title: 'Consultas', text: 'Responde las dudas de los alumnos desde aquí.' },
+  { href: '/admin/alumnos', title: 'Alumnos', text: 'Lista de alumnos y restablecer contraseñas.' },
+  { href: '/admin/cursos', title: 'Programa y cursos', text: 'Edita el contenido, módulos y lecciones.' },
+  { href: '/admin/sesiones', title: 'Sesiones en vivo', text: 'Agenda de reuniones y recuperación de clases.' },
+  { href: '/admin/reclamos', title: 'Libro de Reclamaciones', text: 'Reclamos y quejas pendientes de respuesta.' },
+];
 ---
-<BaseLayout title="Administración de acceso" privatePage>
-  <section class="shell page stack admin-access">
-    <div class="stack compact">
-      <p class="kicker">Administración</p>
-      <h1 class="panel-title">Acceso al campus</h1>
-    </div>
-    <a class="button primary" href="/admin/solicitudes">Solicitudes de inscripción</a>
-    <a class="button secondary" href="/admin/alumnos">Alumnos y contraseñas</a>
-    <a class="button secondary" href="/admin/consultas">Consultas de alumnos</a>
-    <a class="button secondary" href="/admin/reclamos">Libro de Reclamaciones</a>
-    <a class="button secondary" href="/admin/cursos">Gestionar programa y cursos</a>
-    <a class="button secondary" href="/admin/cronograma">Cronograma del curso (20 clases)</a>
-    <a class="button secondary" href="/admin/sesiones">Gestionar sesiones en vivo</a>
-    {message && <p class="notice" role="status">{message}</p>}
-    {code && (
-      <div class="stack compact issued-code">
-        <label for="issued-code">Código de matrícula · se muestra una sola vez</label>
-        <input id="issued-code" value={code} readonly />
+<BaseLayout title="Administración" privatePage dark>
+  <div class="dk campus">
+  <AdminNavigation />
+  <div class="shell page home">
+    <header class="top">
+      <div>
+        <p class="eyebrow">Administración</p>
+        <h1>Panel de control</h1>
+        <p class="lead">Quien paga el curso queda matriculado automáticamente. Aquí ves cómo va todo.</p>
       </div>
-    )}
-    <div class="access-grid">
-      <section class="stack compact">
-        <h2>Correos autorizados</h2>
-        <form action={currentPage} method="post" class="stack compact">
-          <label for="allow-email">Correo de Google</label>
-          <input id="allow-email" name="email" type="email" maxlength="254" required />
-          <div class="actions">
-            <button class="button primary" name="action" value="authorize">Autorizar</button>
-            <button class="button secondary" name="action" value="revoke">Revocar</button>
-          </div>
-        </form>
-        {data && <ul class="record-list">
-          {data.emails.map(({ email, active }) => <li>{email}<span>{active ? 'Autorizado' : 'Revocado'}</span></li>)}
-        </ul>}
-        {data && data.emails.length === 0 && <p>No hay correos en esta página.</p>}
-      </section>
-      <section class="stack compact">
-        <h2>Asociar matrícula</h2>
-        {data && data.courses.length > 0 ? (
-          <form action={currentPage} method="post" class="stack compact">
-            <input type="hidden" name="action" value="assign" />
-            <label for="enrollment-email">Correo autorizado</label>
-            <input id="enrollment-email" name="email" type="email" maxlength="254" required />
-            <label for="course">Curso</label>
-            <select id="course" name="courseId" required>
-              <option value="">Selecciona un curso</option>
-              {data.courses.map(({ id, name }) => <option value={id}>{name}</option>)}
-            </select>
-            <label class="toggle"><input name="requireCode" type="checkbox" /> Generar un código de un solo uso</label>
-            <button class="button primary">Asociar matrícula</button>
-          </form>
-        ) : <p>{data ? 'No hay cursos en esta página.' : 'No se pudieron cargar los cursos.'}</p>}
-        {data && data.assignments.length > 0 && <ul class="record-list" aria-label="Matrículas asociadas">
-          {data.assignments.map(({ email, course_id, claimed_at }) => (
-            <li>{email}<span>{data.courses.find(c => c.id === course_id)?.name ?? course_id} · {claimed_at ? 'Aplicada' : 'Pendiente'}</span></li>
-          ))}
-        </ul>}
-      </section>
-    </div>
-    <section class="stack compact students">
-      <h2>Alumnos</h2>
-      {data ? (
-        data.students.length > 0 ?
-          <ul class="record-list">
-            {data.students.map(student => <li>{student.full_name}<span>{student.google_email} · {student.access_active ? 'Membresía activa' : 'Membresía inactiva'}</span></li>)}
-          </ul> : <p>No hay alumnos en esta página.</p>
-      ) : <p class="notice" role="status">No se pudo cargar la información de acceso.</p>}
+      <p class="date">{today}</p>
+    </header>
+
+    {data ? (
+      <>
+        <section class="stats" aria-label="Resumen">
+          <article class="stat"><p class="n">{data.students}</p><p class="l">Alumnos matriculados</p></article>
+          <article class="stat"><p class="n">{data.paid_count}</p><p class="l">Pagos confirmados</p></article>
+          <article class="stat"><p class="n money">{revenue}</p><p class="l">Ingresos cobrados</p></article>
+        </section>
+
+        <section class="card todo" aria-label="Pendientes">
+          <div class="head"><h2>Pendientes</h2></div>
+          <ul>
+            {todo.map((t) => (
+              <li class={t.n > 0 ? 'has' : ''}>
+                <a href={t.href}><span class="num">{t.n}</span><span class="txt">{t.label}</span><span class="go">→</span></a>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section class="card" aria-label="Pagos recientes">
+          <div class="head"><h2>Pagos recientes</h2></div>
+          {data.payments.length ? (
+            <ul class="pays">
+              {data.payments.map((p) => (
+                <li>
+                  <div class="who"><strong>{p.student}</strong><small>{p.email}</small></div>
+                  <span class="course">{p.course}</span>
+                  <span class="date2">{fmt(p.date)}</span>
+                  <span class={`chip ${p.status}`}>{p.status === 'paid' ? 'Pagado' : 'Reembolsado'}</span>
+                  <span class="amt">{moneyIn(p.amount, p.currency)}</span>
+                  <a class="link" href={`/cuenta/comprobante/${p.id}`}>Constancia</a>
+                </li>
+              ))}
+            </ul>
+          ) : <p class="soft">Todavía no hay pagos confirmados.</p>}
+        </section>
+      </>
+    ) : <p class="notice" role="status">No se pudo cargar el resumen. Inténtalo de nuevo en unos minutos.</p>}
+
+    <section aria-label="Secciones">
+      <h2 class="sec">Secciones</h2>
+      <div class="cards">
+        {sections.map((s) => (
+          <a class="tile" href={s.href}><b>{s.title}</b><span>{s.text}</span></a>
+        ))}
+      </div>
+      <p class="foot">¿Necesitas dar acceso a alguien <strong>sin pago</strong> (cortesía o beca)? Usa <a href="/admin/accesos">Accesos manuales</a>.</p>
     </section>
-    {(page > 1 || data?.hasNext) && <nav aria-label="Paginación de acceso" class="actions">
-      {page > 1 && <a class="button secondary" href={`/admin?page=${page - 1}`}>Anterior</a>}
-      {data?.hasNext && <a class="button secondary" href={`/admin?page=${page + 1}`}>Siguiente</a>}
-    </nav>}
-  </section>
+  </div>
+  </div>
 </BaseLayout>
 <style>
-  .admin-access { gap: 2rem; }
-  .access-grid { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; }
-  .access-grid section, .students { width: 100%; align-content: start; border-top: 1px solid var(--line); padding-top: 1.25rem; }
-  .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
-  .record-list { width: 100%; list-style: none; margin: 0; padding: 0; }
-  .record-list li { padding: .6rem 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
-  .record-list span { display: block; color: var(--muted); font-size: .9rem; }
-  .toggle { display: flex; gap: .6rem; align-items: center; }
-  .issued-code { width: min(100%, 33rem); }
-  .issued-code input { width: 100%; font-family: ui-monospace, monospace; }
-  @media (max-width: 50rem) { .access-grid { grid-template-columns: 1fr; } }
+  .home { display: grid; gap: 1.4rem; align-content: start; }
+  .top { display: flex; justify-content: space-between; align-items: end; gap: 1rem; }
+  .eyebrow { margin: 0 0 .4rem; font-size: .72rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #5cc8ff; }
+  h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: -.01em; }
+  .lead { margin: .5rem 0 0; color: #93a8d0; font-size: .95rem; }
+  .date { margin: 0; color: #7f95bf; font-size: .85rem; white-space: nowrap; }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; }
+  .stat, .card { border: 1px solid rgb(255 255 255 / .09); border-radius: 18px; background: linear-gradient(180deg, rgb(255 255 255 / .045), rgb(255 255 255 / .02)); box-shadow: 0 18px 40px -28px rgb(0 0 0 / .8); }
+  .stat { padding: 1.3rem 1.5rem; }
+  .n { margin: 0; font-size: 2rem; font-weight: 700; color: #fff; line-height: 1.1; }
+  .n.money { font-size: 1.5rem; padding-top: .3rem; }
+  .l { margin: .35rem 0 0; color: #8fa6d1; font-size: .85rem; }
+  .card { padding: 1.4rem 1.5rem; }
+  .head { margin-bottom: .9rem; }
+  h2 { margin: 0; font-size: 1.05rem; font-weight: 650; }
+  .todo ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .9rem; }
+  .todo a { display: flex; align-items: center; gap: .85rem; padding: .9rem 1rem; border-radius: 14px; border: 1px solid rgb(255 255 255 / .08); background: rgb(255 255 255 / .02); text-decoration: none; color: #dbe7ff; transition: border-color .15s, background .15s; }
+  .todo a:hover { border-color: rgb(92 200 255 / .4); background: rgb(255 255 255 / .05); }
+  .num { display: grid; place-items: center; min-width: 2.2rem; height: 2.2rem; border-radius: 10px; font-weight: 700; background: rgb(255 255 255 / .08); color: #fff; }
+  .has .num { background: rgb(255 193 70 / .18); color: #ffd98a; }
+  .txt { flex: 1; font-size: .9rem; font-weight: 500; }
+  .go { color: #7f95bf; }
+  .pays { list-style: none; margin: 0; padding: 0; }
+  .pays li { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.2fr) 6.5rem 6.8rem 5rem 5.5rem; gap: .9rem; align-items: center; padding: .85rem 0; border-top: 1px solid rgb(255 255 255 / .07); font-size: .9rem; }
+  .pays li:first-child { border-top: 0; padding-top: .2rem; }
+  .who strong { display: block; color: #fff; font-weight: 600; }
+  .who small { color: #7f95bf; font-size: .78rem; overflow-wrap: anywhere; }
+  .course, .date2 { color: #a9bbdb; }
+  .amt { font-weight: 700; color: #fff; white-space: nowrap; }
+  .chip { font-size: .72rem; font-weight: 700; padding: .2rem .65rem; border-radius: 999px; border: 1px solid rgb(255 255 255 / .16); color: #dbe7ff; }
+  .chip.paid { background: rgb(53 208 127 / .14); border-color: rgb(53 208 127 / .45); color: #8ff0bb; }
+  .chip.refunded { background: rgb(255 193 70 / .12); border-color: rgb(255 193 70 / .4); color: #ffd98a; }
+  .link { color: #8ec5ff; text-decoration: none; font-weight: 600; font-size: .85rem; }
+  .soft { margin: 0; color: #8fa6d1; font-size: .9rem; }
+  .sec { margin: .4rem 0 .9rem; }
+  .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+  .tile { display: grid; gap: .35rem; padding: 1.15rem 1.25rem; border-radius: 16px; border: 1px solid rgb(255 255 255 / .09); background: rgb(255 255 255 / .03); text-decoration: none; transition: border-color .15s, background .15s, transform .15s; }
+  .tile:hover { border-color: rgb(92 200 255 / .45); background: rgb(255 255 255 / .06); transform: translateY(-1px); }
+  .tile b { color: #fff; font-weight: 650; }
+  .tile span { color: #8fa6d1; font-size: .85rem; line-height: 1.45; }
+  .foot { margin: 1.1rem 0 0; color: #8fa6d1; font-size: .88rem; }
+  .foot a { color: #8ec5ff; }
+  @media (max-width: 62rem) {
+    .stats, .cards, .todo ul { grid-template-columns: minmax(0, 1fr); }
+    .pays li { grid-template-columns: minmax(0, 1fr) auto; }
+    .pays .course, .pays .date2 { grid-column: 1 / -1; }
+  }
+  @media (max-width: 40rem) { .top { flex-direction: column; align-items: start; } .card, .stat { padding: 1.15rem; border-radius: 16px; } }
 </style>

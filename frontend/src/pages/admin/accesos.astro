@@ -1,0 +1,120 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import { readDashboard, submitAccessChange } from '../../features/access-admin/infrastructure/admin-api';
+import { siteUrl } from '../../shared/config/server';
+
+const token = Astro.locals.accessToken;
+if (!token) return Astro.redirect('/ingresar', 303);
+const pageParam = Astro.url.searchParams.get('page') ?? '1';
+const page = /^[1-9]\d{0,5}$/.test(pageParam) ? Number(pageParam) : 1;
+const currentPage = `/admin/accesos?page=${page}`;
+let message = Astro.url.searchParams.get('guardado') === '1' ? 'Cambios guardados.' : '';
+let code: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  if (Astro.request.headers.get('origin') !== siteUrl().origin) return new Response(null, { status: 403 });
+  try {
+    const result = await submitAccessChange(token, await Astro.request.formData());
+    if (result.ok) {
+      const payload = await result.json();
+      code = typeof payload.code === 'string' ? payload.code : null;
+      if (!code) return Astro.redirect(`${currentPage}&guardado=1`, 303);
+      message = 'Matrícula asociada. Comparte el código con el alumno por un canal privado.';
+    } else {
+      Astro.response.status = result.status;
+      message = result.status === 409
+        ? 'No se pudo asociar la matrícula. Revisa que el correo esté autorizado y que la asociación no exista.'
+        : 'No se pudo guardar el cambio. Revisa los datos e inténtalo de nuevo.';
+    }
+  } catch {
+    Astro.response.status = 503;
+    message = 'El servicio de administración no está disponible.';
+  }
+}
+
+const data = await readDashboard(token, page).catch(() => null);
+if (!data && Astro.response.status === 200) Astro.response.status = 503;
+---
+<BaseLayout title="Accesos manuales" privatePage>
+  <section class="shell page stack admin-access">
+    <div class="stack compact">
+      <p class="kicker">Administración</p>
+      <h1 class="panel-title">Accesos manuales</h1>
+      <p><a href="/admin">← Panel de administración</a></p>
+      <p class="note">Quien paga el curso queda matriculado automáticamente: <strong>aquí no hace falta hacer nada</strong>. Usa esta pantalla solo para dar acceso <strong>sin pago</strong> (cortesías, becas o casos especiales) o para bloquear a alguien.</p>
+    </div>
+    {message && <p class="notice" role="status">{message}</p>}
+    {code && (
+      <div class="stack compact issued-code">
+        <label for="issued-code">Código de matrícula · se muestra una sola vez</label>
+        <input id="issued-code" value={code} readonly />
+      </div>
+    )}
+    <div class="access-grid">
+      <section class="stack compact">
+        <h2>Bloquear o permitir un correo</h2>
+        <form action={currentPage} method="post" class="stack compact">
+          <label for="allow-email">Correo de la persona</label>
+          <input id="allow-email" name="email" type="email" maxlength="254" required />
+          <div class="actions">
+            <button class="button primary" name="action" value="authorize">Permitir</button>
+            <button class="button secondary" name="action" value="revoke">Bloquear</button>
+          </div>
+        </form>
+        {data && <ul class="record-list">
+          {data.emails.map(({ email, active }) => <li>{email}<span>{active ? 'Permitido' : 'Bloqueado'}</span></li>)}
+        </ul>}
+        {data && data.emails.length === 0 && <p>No hay correos en esta página.</p>}
+      </section>
+      <section class="stack compact">
+        <h2>Dar acceso sin pago</h2>
+        {data && data.courses.length > 0 ? (
+          <form action={currentPage} method="post" class="stack compact">
+            <input type="hidden" name="action" value="assign" />
+            <label for="enrollment-email">Correo de la persona</label>
+            <input id="enrollment-email" name="email" type="email" maxlength="254" required />
+            <label for="course">Curso</label>
+            <select id="course" name="courseId" required>
+              <option value="">Selecciona un curso</option>
+              {data.courses.map(({ id, name }) => <option value={id}>{name}</option>)}
+            </select>
+            <label class="toggle"><input name="requireCode" type="checkbox" /> Generar un código de un solo uso</label>
+            <button class="button primary">Dar acceso al curso</button>
+          </form>
+        ) : <p>{data ? 'No hay cursos en esta página.' : 'No se pudieron cargar los cursos.'}</p>}
+        {data && data.assignments.length > 0 && <ul class="record-list" aria-label="Matrículas asociadas">
+          {data.assignments.map(({ email, course_id, claimed_at }) => (
+            <li>{email}<span>{data.courses.find(c => c.id === course_id)?.name ?? course_id} · {claimed_at ? 'Con acceso' : 'Esperando que ingrese'}</span></li>
+          ))}
+        </ul>}
+      </section>
+    </div>
+    <section class="stack compact students">
+      <h2>Alumnos</h2>
+      {data ? (
+        data.students.length > 0 ?
+          <ul class="record-list">
+            {data.students.map(student => <li>{student.full_name}<span>{student.google_email} · {student.access_active ? 'Membresía activa' : 'Membresía inactiva'}</span></li>)}
+          </ul> : <p>No hay alumnos en esta página.</p>
+      ) : <p class="notice" role="status">No se pudo cargar la información de acceso.</p>}
+    </section>
+    {(page > 1 || data?.hasNext) && <nav aria-label="Paginación de acceso" class="actions">
+      {page > 1 && <a class="button secondary" href={`/admin/accesos?page=${page - 1}`}>Anterior</a>}
+      {data?.hasNext && <a class="button secondary" href={`/admin/accesos?page=${page + 1}`}>Siguiente</a>}
+    </nav>}
+  </section>
+</BaseLayout>
+<style>
+  .admin-access { gap: 2rem; }
+  .note { margin: 0; max-width: 46rem; color: var(--muted); }
+  .access-grid { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; }
+  .access-grid section, .students { width: 100%; align-content: start; border-top: 1px solid var(--line); padding-top: 1.25rem; }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  .record-list { width: 100%; list-style: none; margin: 0; padding: 0; }
+  .record-list li { padding: .6rem 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+  .record-list span { display: block; color: var(--muted); font-size: .9rem; }
+  .toggle { display: flex; gap: .6rem; align-items: center; }
+  .issued-code { width: min(100%, 33rem); }
+  .issued-code input { width: 100%; font-family: ui-monospace, monospace; }
+  @media (max-width: 50rem) { .access-grid { grid-template-columns: 1fr; } }
+</style>

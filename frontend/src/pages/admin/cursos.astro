@@ -31,7 +31,7 @@ const state = (value: string) => statuses[value as keyof typeof statuses] ?? val
 ---
 <BaseLayout title="Gestión de cursos" privatePage>
   <div class="shell page stack editorial">
-    <a href="/admin">Administración de acceso</a>
+    <a href="/admin">← Panel de administración</a>
     <h1 class="panel-title">Gestión de cursos</h1>
     {message && <p class="notice" role="status">{message}</p>}
     {data ? (
