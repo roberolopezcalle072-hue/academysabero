@@ -1,17 +1,45 @@
 ---
 const path = Astro.url.pathname;
 const student = Astro.locals.member?.role === 'student';
+const admin = Astro.locals.member?.role === 'admin';
+const items = [
+  { href: '/campus', label: 'Resumen', on: path === '/campus', icon: 'M3 11.5 12 4l9 7.5M5.5 10v9.5h13V10' },
+  { href: '/campus/cronograma', label: 'Cronograma', on: path === '/campus/cronograma', icon: 'M4 6.5h16M4 6.5v13h16v-13M4 6.5v-1.5h16v1.5M8 3.5v3M16 3.5v3M8 11h3M13 11h3M8 15h3' },
+  { href: '/campus#cursos', label: 'Mis cursos', on: path.startsWith('/campus/cursos/'), icon: 'M4 5.5c3-1.3 5.500-1.300 8 .5 2.500-1.800 5-1.800 8-.5v13c-3-1.300-5.500-1.300-8 .5-2.500-1.800-5-1.800-8-.5z M12 6v13' },
+  ...(student ? [
+    { href: '/campus/sesiones', label: 'Sesiones en vivo', on: path === '/campus/sesiones', icon: 'M4 7.500h10v9H4zM14 11l6-3.500v9L14 13' },
+    { href: '/campus/consultas', label: 'Consultas', on: path === '/campus/consultas', icon: 'M4 5.500h16v10.500H9.500L5 19.500V16H4z' },
+  ] : []),
+  ...(admin ? [{ href: '/admin', label: 'Administración', on: false, icon: 'M12 3l7 3v5c0 4.500-3 8-7 10-4-2-7-5.500-7-10V6z' }] : []),
+];
 ---
-<nav class="shell campus-nav" aria-label="Navegación del campus">
-  <a href="/campus" aria-current={path === '/campus' ? 'page' : undefined}>Resumen</a>
-  <a href="/campus/cronograma" aria-current={path === '/campus/cronograma' ? 'page' : undefined}>Cronograma</a>
-  <a href="/campus#cursos" aria-current={path.startsWith('/campus/cursos/') ? 'location' : undefined}>Mis cursos</a>
-  {student && <a href="/campus/sesiones" aria-current={path === "/campus/sesiones" ? "page" : undefined}>Sesiones en vivo</a>}
-  {student && <a href="/campus/consultas" aria-current={path === '/campus/consultas' ? 'page' : undefined}>Consultas</a>}
+<nav class="campus-nav" aria-label="Navegación del campus">
+  <p class="nav-title">Campus</p>
+  <ul>
+    {items.map((item) => (
+      <li>
+        <a href={item.href} aria-current={item.on ? 'page' : undefined}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={item.icon} /></svg>
+          <span>{item.label}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
 </nav>
 <style>
-  .campus-nav { display: flex; flex-wrap: wrap; gap: .25rem 1.4rem; border-bottom: 1px solid var(--line); }
-  a { padding-block: .8rem; border-bottom: 2px solid transparent; color: var(--text); text-decoration: none; }
-  a:hover, a[aria-current] { border-bottom-color: var(--blue); color: var(--link); }
-  @media (max-width: 40rem) { .campus-nav { gap: 0 1.1rem; } a { padding-block: .7rem; font-size: .92rem; } }
+  .campus-nav { padding: 1.75rem 1rem 1.5rem 1.25rem; }
+  .nav-title { margin: 0 0 .9rem .75rem; font-size: .7rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #6f87b8; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .2rem; }
+  a { display: flex; align-items: center; gap: .75rem; padding: .62rem .75rem; border-radius: 10px; color: #aebfdd; text-decoration: none; font-size: .92rem; font-weight: 500; border: 1px solid transparent; transition: background .15s, color .15s; }
+  a svg { flex: none; opacity: .85; }
+  a:hover { background: rgb(255 255 255 / .05); color: #fff; }
+  a[aria-current] { background: rgb(47 149 255 / .14); border-color: rgb(47 149 255 / .28); color: #fff; }
+  a[aria-current] svg { color: #5cc8ff; opacity: 1; }
+  @media (max-width: 62rem) {
+    .campus-nav { padding: .6rem 1rem; border-bottom: 1px solid rgb(255 255 255 / .08); }
+    .nav-title { display: none; }
+    ul { display: flex; gap: .35rem; overflow-x: auto; scrollbar-width: none; padding-bottom: .1rem; }
+    ul::-webkit-scrollbar { display: none; }
+    a { white-space: nowrap; padding: .5rem .8rem; font-size: .88rem; }
+  }
 </style>

@@ -113,9 +113,11 @@ export async function loadStudents(token: string, course: string): Promise<Stude
 
 const day = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const dayShort = new Intl.DateTimeFormat('es-PE', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+const dayMonth = new Intl.DateTimeFormat('es-PE', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 export const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 
 /** "2026-01-05" → "lunes, 5 de enero" (la fecha ya viene calculada en la zona del curso). */
 export const longDate = (iso: string) => day.format(new Date(`${iso}T12:00:00Z`));
 export const shortDate = (iso: string) => dayShort.format(new Date(`${iso}T12:00:00Z`));
+export const dayMonthDate = (iso: string) => dayMonth.format(new Date(`${iso}T12:00:00Z`)).replace('.', '');
 export const lines = (text?: string) => (text ?? '').split('\n').map((l) => l.trim()).filter(Boolean);

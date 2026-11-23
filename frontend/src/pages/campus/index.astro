@@ -3,95 +3,213 @@ import BaseLayout from '../../shared/presentation/BaseLayout.astro';
 import CampusNavigation from '../../features/learning/presentation/CampusNavigation.astro';
 import { duration, dateTime, lessonUrl } from '../../features/learning/presentation/format';
 import { loadCampus } from '../../features/learning/infrastructure/learning-api';
+import { loadSchedule, longDate, shortDate, WEEKDAYS } from '../../features/schedule/schedule-api';
 
 const token = Astro.locals.accessToken;
 if (!token) return Astro.redirect('/ingresar', 303);
-const response = await loadCampus(token);
+const [response, plan] = await Promise.all([loadCampus(token), loadSchedule(token)]);
 const data = response.status === 'ok' ? response.value : null;
 if (!data) Astro.response.status = 503;
 const paid = Astro.url.searchParams.get('estado') === 'pagado';
+const first = (data?.name ?? '').trim().split(/\s+/)[0] || '';
+const course = data?.courses[0];
 const next = data?.pending[0];
 const session = data?.next_session;
 const inProgress = session && new Date(session.starts_at).getTime() <= Date.now();
+const live = plan?.next ?? null;
+const percent = plan ? plan.percent : (course?.progress ?? 0);
+const doneText = plan ? `${plan.completed} de ${plan.total} clases completadas` : 'del curso completado';
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+const today = cap(new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Lima' }).format(new Date()));
+const C = 2 * Math.PI * 46;
+const phaseText: Record<string, string> = { today: 'Hoy', next: 'Próxima clase', pending: 'Pendiente', executed: 'Ejecutada' };
 ---
 <BaseLayout title="Campus" privatePage dark>
   <div class="dk campus">
   <CampusNavigation />
-  <div class="shell page stack campus-home">
-    <header class="stack compact">
-      {paid && <p class="notice" role="status">¡Pago confirmado! Ya tienes acceso a tu curso.</p>}
-      <p class="kicker">Campus privado</p>
-      <h1 class="panel-title">{data?.name ? `Hola, ${data.name}` : 'Tu campus'}</h1>
+  <div class="shell page home">
+    <header class="top">
+      <div>
+        <p class="eyebrow">{course ? course.name : 'Campus privado'}</p>
+        <h1>{first ? `Hola, ${first}` : 'Tu campus'}</h1>
+        <p class="lead">Aquí encuentras tus clases en vivo, el cronograma y tu avance.</p>
+      </div>
+      <p class="date">{today}</p>
     </header>
+
+    {paid && <p class="notice" role="status">¡Pago confirmado! Ya tienes acceso a tu curso.</p>}
+
     {data ? (
       <>
-        <div class={`agenda ${next ? '' : 'solo'}`}>
-          <section id="sesion" class="stack compact live">
-            <h2>{inProgress ? 'Sesión en vivo en curso' : 'Próxima sesión en vivo'}</h2>
-            {session ? (
+        <div class="grid">
+          <article class="card live">
+            <p class="label"><span class="dot"></span>{live ? (live.phase === 'today' ? 'Clase de hoy' : 'Próxima clase en vivo') : inProgress ? 'Sesión en curso' : 'Próxima sesión en vivo'}</p>
+            {live ? (
               <>
-                <h3>{session.title}</h3>
-                <p>{session.course} · <time datetime={session.starts_at}>{dateTime(session.starts_at)} (hora de Lima)</time></p>
-                <a class="button primary" href={session.meet_url} target="_blank" rel="noopener noreferrer">{inProgress ? 'Entrar ahora a Google Meet' : 'Abrir enlace de Google Meet'}</a>
-              </>
-            ) : <p>Aún no hay una sesión programada. Cuando se publique, aquí aparecerá el enlace para conectarte.</p>}
-            {Astro.locals.member?.role === 'student' && <a href="/campus/sesiones">Ver agenda y grabaciones de clases anteriores</a>}
-          </section>
-          {next && <section class="stack compact">
-            <h2>Material pendiente</h2>
-            <p class="kicker">{next.course} · Día {next.day_number}</p>
-            <h3>{next.title}</h3>
-            <a class="button secondary" href={lessonUrl(next.course_id, next.id)}>Continuar</a>
-          </section>}
-        </div>
-        <section id="cursos" class="stack compact full">
-          <h2>Mis cursos</h2>
-          {data.courses.length ? <ul class="course-list">
-            {data.courses.map(course => (
-              <li>
-                <img src={course.image_path} alt="" width="160" height="100" loading="lazy" />
-                <div class="stack compact">
-                  <h3><a href={`/campus/cursos/${course.id}`}>{course.name}</a></h3>
-                  <p>{duration(course.duration_minutes)}</p>
-                  <p class="progress-label"><progress value={course.progress} max="100" aria-label={`Progreso en ${course.name}`} /> {course.progress}% completado</p>
+                <h2>Clase {live.class_no} · {live.title}</h2>
+                <p class="when">
+                  {live.date ? <>{cap(longDate(live.date))}</> : 'Fecha por confirmar'}<span> · hora de Lima</span>
+                </p>
+                <div class="actions">
+                  {live.unlocked && live.meet_url
+                    ? <a class="btn primary" href={live.meet_url} target="_blank" rel="noopener noreferrer">Unirme a Google Meet</a>
+                    : <span class="soft">{live.unlocked ? 'El enlace de la reunión se publicará aquí.' : 'Se habilita en la fecha de la clase.'}</span>}
+                  <a class="btn ghost" href={`/campus/cronograma#clase-${live.class_no}`}>Ver detalle</a>
                 </div>
-                <a class="button secondary" href={`/campus/cursos/${course.id}`}>Ver lecciones y materiales</a>
-              </li>
-            ))}
-          </ul> : <p>Todavía no hay cursos publicados para tu matrícula.</p>}
+              </>
+            ) : session ? (
+              <>
+                <h2>{session.title}</h2>
+                <p class="when"><time datetime={session.starts_at}>{dateTime(session.starts_at)}</time><span> · hora de Lima</span></p>
+                <div class="actions">
+                  <a class="btn primary" href={session.meet_url} target="_blank" rel="noopener noreferrer">{inProgress ? 'Entrar ahora a Google Meet' : 'Abrir Google Meet'}</a>
+                  {Astro.locals.member?.role === 'student' && <a class="btn ghost" href="/campus/sesiones">Agenda y grabaciones</a>}
+                </div>
+              </>
+            ) : (
+              <>
+                <h2>Aún no hay una clase programada</h2>
+                <p class="soft">Cuando se publique la próxima, aquí aparecerá el enlace para conectarte.</p>
+              </>
+            )}
+          </article>
+
+          <article class="card ring">
+            <p class="label">Tu avance</p>
+            <div class="ringbox">
+              <svg viewBox="0 0 110 110" width="124" height="124" role="img" aria-label={`${percent}% completado`}>
+                <circle cx="55" cy="55" r="46" fill="none" stroke="rgb(255 255 255 / .09)" stroke-width="8" />
+                <circle cx="55" cy="55" r="46" fill="none" stroke="url(#g)" stroke-width="8" stroke-linecap="round"
+                  stroke-dasharray={C} stroke-dashoffset={C * (1 - percent / 100)} transform="rotate(-90 55 55)" />
+                <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5cc8ff" /><stop offset="1" stop-color="#2f7bff" /></linearGradient></defs>
+                <text x="55" y="61" text-anchor="middle" font-size="22" font-weight="700" fill="#fff">{percent}%</text>
+              </svg>
+              <div>
+                <p class="big">{plan ? `${plan.completed}/${plan.total}` : `${percent}%`}</p>
+                <p class="soft">{doneText}</p>
+                {plan && <a class="link" href="/campus/cronograma">Ver cronograma completo →</a>}
+              </div>
+            </div>
+          </article>
+        </div>
+
+        {plan && (
+          <section class="card weeks" aria-label="Semanas del curso">
+            <div class="head"><h2>Cronograma</h2><a class="link" href="/campus/cronograma">Abrir →</a></div>
+            <ul>
+              {plan.weeks.map((w) => {
+                const pct = w.total ? Math.round(100 * w.completed / w.total) : 0;
+                const current = live?.week_no === w.week_no;
+                return (
+                  <li class={current ? 'now' : ''}>
+                    <a href={`/campus/cronograma#semana-${w.week_no}`}>
+                      <span class="wk">Semana {w.week_no}</span>
+                      <span class="wt">{w.title}</span>
+                      <span class="bar"><i style={`width:${pct}%`}></i></span>
+                      <span class="wm">{w.completed}/{w.total} clases · 10 h</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        <section id="cursos" class="card courses">
+          <div class="head"><h2>Mis cursos</h2></div>
+          {data.courses.length ? (
+            <ul class="clist">
+              {data.courses.map((c) => (
+                <li>
+                  <img src={c.image_path} alt="" width="176" height="99" loading="lazy" />
+                  <div class="cinfo">
+                    <h3><a href={`/campus/cursos/${c.id}`}>{c.name}</a></h3>
+                    <p class="soft">{duration(c.duration_minutes)} de formación en vivo</p>
+                  </div>
+                  <a class="btn ghost" href={`/campus/cursos/${c.id}`}>Lecciones y materiales</a>
+                </li>
+              ))}
+            </ul>
+          ) : <p class="soft">Todavía no hay cursos publicados para tu matrícula.</p>}
         </section>
-        {data.pending.length > 1 && <section class="stack compact full">
-          <h2>Otras actividades pendientes</h2>
-          <ol class="pending">
-            {data.pending.slice(1).map(item => <li>
-              <span>{item.course} · Día {item.day_number}</span>
-              <a href={lessonUrl(item.course_id, item.id)}>{item.title}</a>
-            </li>)}
-          </ol>
-        </section>}
-        {Astro.locals.member?.role === 'student' &&
-          <a href="/ingresar?estado=activar">Canjear un código de matrícula</a>}
+
+        {next && (
+          <section class="card pending">
+            <p class="label">Material pendiente</p>
+            <p class="ptitle"><span class="soft">{next.course} · Día {next.day_number}</span><br />{next.title}</p>
+            <a class="btn ghost" href={lessonUrl(next.course_id, next.id)}>Continuar</a>
+          </section>
+        )}
+
+        {Astro.locals.member?.role === 'student' && <a class="link redeem" href="/ingresar?estado=activar">¿Tienes un código de matrícula? Canjéalo</a>}
       </>
     ) : <p class="notice" role="status">No se pudo cargar el campus. Vuelve a intentarlo en unos minutos.</p>}
   </div>
   </div>
 </BaseLayout>
 <style>
-  .campus-home { gap: 2.75rem; }
-  .full, .agenda, .course-list, .pending { width: 100%; }
-  .agenda { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.5rem; }
-  .agenda.solo { grid-template-columns: minmax(0, 1fr); }
-  .agenda section { align-content: start; border: 1px solid var(--line); padding: 1.5rem; background: var(--light); }
-  .course-list, .pending { list-style: none; margin: 0; padding: 0; }
-  .course-list li { display: grid; grid-template-columns: 10rem minmax(0, 1fr) auto; gap: 1.25rem; align-items: center; padding-block: 1rem; border-bottom: 1px solid var(--line); }
-  img { object-fit: cover; background: var(--light); width: 100%; }
-  .progress-label { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
-  progress { accent-color: var(--blue); }
-  .pending li { display: grid; padding-block: .75rem; border-bottom: 1px solid var(--line); }
-  .pending span { color: var(--muted); }
-  @media (max-width: 50rem) {
-    .agenda { grid-template-columns: 1fr; }
-    .course-list li { grid-template-columns: 7rem minmax(0, 1fr); }
-    .course-list li > a { grid-column: 1 / -1; justify-self: start; }
+  .home { display: grid; gap: 1.4rem; align-content: start; }
+  .top { display: flex; justify-content: space-between; align-items: end; gap: 1rem; padding-bottom: .4rem; }
+  .eyebrow { margin: 0 0 .4rem; font-size: .72rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #5cc8ff; }
+  h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: -.01em; }
+  .lead { margin: .5rem 0 0; color: #93a8d0; font-size: .95rem; }
+  .date { margin: 0; color: #7f95bf; font-size: .85rem; white-space: nowrap; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 1.2rem; }
+  .card { border: 1px solid rgb(255 255 255 / .09); border-radius: 18px; padding: 1.5rem 1.6rem; background: linear-gradient(180deg, rgb(255 255 255 / .045), rgb(255 255 255 / .02)); box-shadow: 0 18px 40px -28px rgb(0 0 0 / .8); }
+  .label { display: flex; align-items: center; gap: .55rem; margin: 0 0 .9rem; font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #8fa6d1; }
+  .dot { width: .5rem; height: .5rem; border-radius: 50%; background: #35d07f; box-shadow: 0 0 0 4px rgb(53 208 127 / .18); }
+  .live { background: linear-gradient(135deg, rgb(47 123 255 / .22), rgb(8 24 78 / .55) 60%); border-color: rgb(92 200 255 / .25); }
+  .live h2 { margin: 0; font-size: clamp(1.15rem, 2vw, 1.5rem); font-weight: 650; line-height: 1.3; letter-spacing: -.005em; }
+  .when { margin: .55rem 0 0; color: #dbe7ff; }
+  .when span { color: #8fa6d1; }
+  .actions { display: flex; flex-wrap: wrap; gap: .7rem; align-items: center; margin-top: 1.4rem; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: .6rem 1.25rem; border-radius: 10px; font-weight: 600; font-size: .9rem; text-decoration: none; transition: transform .15s, background .15s; }
+  .btn.primary { background: linear-gradient(180deg, #3b9bff, #1c63ea); color: #fff; box-shadow: 0 8px 22px -8px rgb(47 123 255 / .8); }
+  .btn.primary:hover { transform: translateY(-1px); }
+  .btn.ghost { color: #e6eeff; border: 1px solid rgb(255 255 255 / .16); background: rgb(255 255 255 / .04); }
+  .btn.ghost:hover { background: rgb(255 255 255 / .09); }
+  .soft { margin: 0; color: #8fa6d1; font-size: .9rem; }
+  .ringbox { display: flex; align-items: center; gap: 1.3rem; }
+  .ringbox svg { flex: none; }
+  .big { margin: 0; font-size: 1.7rem; font-weight: 700; color: #fff; line-height: 1.1; }
+  .link { color: #8ec5ff; text-decoration: none; font-size: .88rem; font-weight: 600; display: inline-block; margin-top: .6rem; }
+  .link:hover { color: #fff; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem; }
+  .head h2 { margin: 0; font-size: 1.05rem; font-weight: 650; }
+  .head .link { margin: 0; }
+  .weeks ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .9rem; }
+  .weeks li a { display: grid; gap: .3rem; padding: 1rem 1.05rem; height: 100%; border-radius: 14px; border: 1px solid rgb(255 255 255 / .08); background: rgb(255 255 255 / .02); text-decoration: none; transition: border-color .15s, background .15s; }
+  .weeks li a:hover { border-color: rgb(92 200 255 / .4); background: rgb(255 255 255 / .05); }
+  .weeks li.now a { border-color: rgb(47 149 255 / .6); background: rgb(47 123 255 / .12); }
+  .wk { font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #5cc8ff; }
+  .wt { font-size: .92rem; font-weight: 600; color: #fff; line-height: 1.3; }
+  .bar { display: block; height: 4px; border-radius: 4px; background: rgb(255 255 255 / .1); margin-top: .5rem; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: linear-gradient(90deg, #5cc8ff, #2f7bff); border-radius: 4px; }
+  .wm { font-size: .78rem; color: #8fa6d1; }
+  .clist { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+  .clist li { display: grid; grid-template-columns: 11rem minmax(0, 1fr) auto; gap: 1.2rem; align-items: center; }
+  .clist img { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 12px; object-fit: cover; border: 1px solid rgb(255 255 255 / .1); }
+  .cinfo h3 { margin: 0 0 .25rem; font-size: 1.02rem; font-weight: 650; }
+  .cinfo h3 a { color: #fff; text-decoration: none; }
+  .cinfo h3 a:hover { color: #8ec5ff; }
+  .pending { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .2rem 1.2rem; align-items: center; }
+  .pending .label { grid-column: 1 / -1; margin-bottom: .5rem; }
+  .ptitle { margin: 0; color: #fff; font-weight: 600; }
+  .ptitle .soft { font-weight: 400; }
+  .redeem { margin: 0; justify-self: start; }
+  @media (max-width: 62rem) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .weeks ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 40rem) {
+    .top { flex-direction: column; align-items: start; }
+    .card { padding: 1.2rem; border-radius: 16px; }
+    .weeks ul { grid-template-columns: minmax(0, 1fr); }
+    .clist li { grid-template-columns: minmax(0, 1fr); }
+    .clist .btn { justify-self: start; }
+    .ringbox { gap: 1rem; }
+    .pending { grid-template-columns: minmax(0, 1fr); }
+    .pending .btn { justify-self: start; margin-top: .6rem; }
+    .actions .btn { width: 100%; }
   }
 </style>
