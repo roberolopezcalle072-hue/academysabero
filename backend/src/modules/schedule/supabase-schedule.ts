@@ -44,17 +44,17 @@ export class SupabaseSchedule {
     if (error) throw error;
   }
 
-  async saveSettings(token: string, course: string, start: string | null, time: string, timezone: string) {
+  async saveSettings(token: string, course: string, start: string | null, time: string, timezone: string, programTitle: string | null, tagline: string | null) {
     const { error } = await this.client(token).rpc('academy_admin_save_settings', {
-      p_course: course, p_start: start, p_time: time, p_timezone: timezone,
+      p_course: course, p_start: start, p_time: time, p_timezone: timezone, p_program_title: programTitle, p_tagline: tagline,
     });
     if (error) throw error;
   }
 
   async saveWeek(token: string, course: string, week: number, title: string, objective: string,
-                 topics: { topic_no: number; title: string }[]) {
+                 topics: { topic_no: number; title: string }[], result: string | null) {
     const { error } = await this.client(token).rpc('academy_admin_save_week', {
-      p_course: course, p_week: week, p_title: title, p_objective: objective, p_topics: topics,
+      p_course: course, p_week: week, p_title: title, p_objective: objective, p_topics: topics, p_result: result,
     });
     if (error) throw error;
   }

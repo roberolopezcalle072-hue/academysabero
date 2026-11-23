@@ -84,7 +84,12 @@ export class ScheduleController {
     if (start !== null && (typeof start !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(start))) throw new BadRequestException();
     if (typeof time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new BadRequestException();
     if (typeof zone !== 'string' || !/^[A-Za-z_]+(\/[A-Za-z_+\-0-9]+){0,2}$/.test(zone)) throw new BadRequestException();
-    await this.schedule.saveSettings(token, course, start as string | null, time, zone).catch(failure);
+    const clean = (value: unknown, max: number) => {
+      if (value === undefined || value === null || value === '') return null;
+      if (typeof value !== 'string' || value.length > max) throw new BadRequestException();
+      return value;
+    };
+    await this.schedule.saveSettings(token, course, start as string | null, time, zone, clean(body.programTitle, 200), clean(body.tagline, 300)).catch(failure);
     return { saved: true };
   }
 
@@ -105,7 +110,9 @@ export class ScheduleController {
       if (!Number.isInteger(item?.topic_no) || typeof item?.title !== 'string' || item.title.length > 160) throw new BadRequestException();
       return { topic_no: item.topic_no as number, title: item.title };
     });
-    await this.schedule.saveWeek(token, course, Number(week), title, objective, clean).catch(failure);
+    const result = body.result === undefined || body.result === null ? null : body.result;
+    if (result !== null && (typeof result !== 'string' || result.length > 1000)) throw new BadRequestException();
+    await this.schedule.saveWeek(token, course, Number(week), title, objective, clean, result).catch(failure);
     return { saved: true };
   }
 

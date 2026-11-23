@@ -1,4 +1,4 @@
--- Calendario real (inicio 15 dic, receso 24 dic - 1 ene) y turnos con cupo (todo se revierte).
+-- Calendario real (inicio 15 dic, dias sin clase 24/25/31 dic, 1/11/14/15 ene) y turnos con cupo (todo se revierte).
 -- Ejecutar con: psql -v ON_ERROR_STOP=1 -f supabase/tests/schedule_slots.sql
 \set ON_ERROR_STOP on
 begin;
@@ -26,12 +26,18 @@ create temp table t_ids as select class_no, id from public.academy_class_plan; g
 do $$ declare p public.academy_class_plan; r record; begin
   select * into p from public.academy_class_plan where class_no = 1;  if academy_private.class_date(p) <> date '2026-12-15' then raise exception 'clase 1 debia ser 15 dic: %', academy_private.class_date(p); end if;
   select * into p from public.academy_class_plan where class_no = 7;  if academy_private.class_date(p) <> date '2026-12-23' then raise exception 'clase 7 debia ser 23 dic'; end if;
-  select * into p from public.academy_class_plan where class_no = 8;  if academy_private.class_date(p) <> date '2027-01-04' then raise exception 'clase 8 debia ser 4 ene (tras el receso)'; end if;
+  select * into p from public.academy_class_plan where class_no = 8;  if academy_private.class_date(p) <> date '2026-12-28' then raise exception 'clase 8 debia ser 28 dic (24, 25 y 31 son dias sin clase)'; end if;
+  select * into p from public.academy_class_plan where class_no = 10; if academy_private.class_date(p) <> date '2026-12-30' then raise exception 'clase 10 debia ser 30 dic'; end if;
+  select * into p from public.academy_class_plan where class_no = 11; if academy_private.class_date(p) <> date '2027-01-04' then raise exception 'clase 11 debia ser 4 ene (1 ene es feriado)'; end if;
+  select * into p from public.academy_class_plan where class_no = 15; if academy_private.class_date(p) <> date '2027-01-08' then raise exception 'clase 15 debia ser 8 ene'; end if;
+  select * into p from public.academy_class_plan where class_no = 16; if academy_private.class_date(p) <> date '2027-01-12' then raise exception 'clase 16 debia ser 12 ene'; end if;
+  select * into p from public.academy_class_plan where class_no = 18; if academy_private.class_date(p) <> date '2027-01-18' then raise exception 'clase 18 debia ser 18 ene'; end if;
   select * into p from public.academy_class_plan where class_no = 20; if academy_private.class_date(p) <> date '2027-01-20' then raise exception 'clase 20 debia ser 20 ene'; end if;
   if exists (select 1 from public.academy_class_plan c where extract(isodow from academy_private.class_date(c)) > 5) then raise exception 'hay clases en fin de semana'; end if;
   if exists (select 1 from public.academy_class_plan c join public.academy_schedule_holidays h on h.day = academy_private.class_date(c)) then raise exception 'hay clases en feriado'; end if;
   if (select count(distinct academy_private.class_date(c)) from public.academy_class_plan c) <> 20 then raise exception 'fechas repetidas'; end if;
-  if (select count(*) from public.academy_schedule_holidays) <> 9 then raise exception 'receso: deben ser 9 dias (24 dic al 1 ene)'; end if;
+  if (select count(*) from public.academy_schedule_holidays) <> 7 then raise exception 'deben ser 7 dias sin clase'; end if;
+  if not exists (select 1 from public.academy_schedule_holidays where day = date '2026-12-25' and label = 'Navidad') or not exists (select 1 from public.academy_schedule_holidays where day = date '2027-01-01' and label = 'Año Nuevo') then raise exception 'Navidad o Ano Nuevo sin marcar'; end if;
   raise notice 'calendario 15 dic al 20 ene con receso de fin de ano OK';
 end $$;
 
@@ -41,7 +47,14 @@ do $$ declare s jsonb; begin
   if (select count(*) from jsonb_array_elements(s->'slots')) <> 2 then raise exception 'solo deben verse 2 turnos de tarde: %', s->'slots'; end if;
   if exists (select 1 from jsonb_array_elements(s->'slots') x where x->>'label' = 'Mañana') then raise exception 'la mañana no debe verse aun'; end if;
   if (s->>'start_date') <> '2026-12-15' or (s->>'end_date') <> '2027-01-20' then raise exception 'inicio/fin mal: % %', s->>'start_date', s->>'end_date'; end if;
-  if jsonb_array_length(s->'holidays') <> 9 or jsonb_array_length(s->'classes') <> 20 then raise exception 'feriados/clases mal'; end if;
+  if jsonb_array_length(s->'holidays') <> 7 or jsonb_array_length(s->'classes') <> 20 then raise exception 'feriados/clases mal'; end if;
+  -- La malla es publica (4 modulos y 20 clases) pero sin enlaces ni materiales
+  if jsonb_array_length(s->'weeks') <> 4 then raise exception 'la malla publica debe tener 4 modulos'; end if;
+  if (select sum(jsonb_array_length(w->'classes')) from jsonb_array_elements(s->'weeks') w) <> 20 then raise exception 'la malla publica debe tener 20 clases'; end if;
+  if s::text ~ 'meet_url|recording_url|material_url|drive\.google|meet\.google' then raise exception 'la vista publica filtra enlaces'; end if;
+  if s->'program'->>'tagline' <> '¡Crea tu propio sistema de ventas inteligente y transforma la atención de tu negocio!' then raise exception 'frase comercial'; end if;
+  if s->'weeks'->0->>'title' <> 'Prepara tu negocio para la inteligencia artificial' then raise exception 'modulo 1'; end if;
+  if jsonb_array_length(s->'weeks'->0->'classes') <> 5 or (s->'weeks'->3->'classes'->4->>'date') <> '2027-01-20' then raise exception 'clases por modulo'; end if;
   raise notice 'solo se ofrecen los turnos de la tarde al comenzar OK';
 end $$;
 

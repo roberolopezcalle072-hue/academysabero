@@ -34,6 +34,9 @@ export interface ScheduleWeek {
   week_no: number;
   title: string;
   objective: string;
+  result: string;
+  start: string | null;
+  end: string | null;
   total: number;
   completed: number;
   topics: { topic_no: number; title: string }[];
@@ -46,8 +49,20 @@ export interface SlotInfo { slot_no: number; label: string; starts: string; ends
 
 export interface AdminSlot extends SlotInfo { capacity: number; tier: number; active: boolean; taken: number }
 
+export interface PublicClass {
+  class_no: number; topic_no: number; date: string | null; title: string; description: string;
+  objectives: string; content: string; activity: string; outcome: string; duration_minutes: number;
+}
+
+export interface PublicWeek {
+  week_no: number; title: string; objective: string; result: string; start: string | null; end: string | null;
+  topics: { topic_no: number; title: string }[]; classes: PublicClass[];
+}
+
 export interface PublicSchedule {
   course: { id: string; name: string };
+  program: { title: string; tagline: string };
+  weeks: PublicWeek[];
   start_date: string | null;
   end_date: string | null;
   classes: { class_no: number; date: string | null }[];
@@ -57,11 +72,12 @@ export interface PublicSchedule {
 
 export interface Schedule {
   course: { id: string; name: string };
+  program: { title: string; tagline: string };
   holidays: Holiday[];
   slot: SlotInfo | null;
   slots: AdminSlot[] | null;
   admin: boolean;
-  settings: { start_date: string | null; unlock_time: string; timezone: string };
+  settings: { start_date: string | null; unlock_time: string; timezone: string; program_title: string | null; tagline: string | null };
   total: number;
   completed: number;
   percent: number;
@@ -129,7 +145,7 @@ export async function saveClass(token: string, id: string, data: Record<string, 
   }
 }
 
-export async function saveSettings(token: string, body: { course: string; startDate: string; unlockTime: string; timezone: string }): Promise<number> {
+export async function saveSettings(token: string, body: { course: string; startDate: string; unlockTime: string; timezone: string; programTitle?: string; tagline?: string }): Promise<number> {
   try {
     return (await apiRequest('/admin/schedule/settings', token, body)).status;
   } catch {
@@ -172,3 +188,8 @@ export function clock(hhmm: string): string {
   return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${suffix}`;
 }
 export const slotRange = (starts: string, ends: string) => `${clock(starts)} – ${clock(ends)}`;
+
+const monthDay = new Intl.DateTimeFormat('es-PE', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+/** "2026-12-15", "2026-12-21" -> "15 dic – 21 dic" */
+export const rangeLabel = (a: string | null, b: string | null) =>
+  a && b ? `${monthDay.format(new Date(`${a}T12:00:00Z`)).replace(/\./g, '')} – ${monthDay.format(new Date(`${b}T12:00:00Z`)).replace(/\./g, '')}` : '';

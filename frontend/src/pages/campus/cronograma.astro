@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../shared/presentation/BaseLayout.astro';
 import CampusNavigation from '../../features/learning/presentation/CampusNavigation.astro';
-import { loadSchedule, setClassDone, longDate, dayMonthDate, lines, slotRange, WEEKDAYS, type ScheduleClass } from '../../features/schedule/schedule-api';
+import { loadSchedule, setClassDone, longDate, dayMonthDate, lines, slotRange, rangeLabel, WEEKDAYS, type ScheduleClass } from '../../features/schedule/schedule-api';
 import ScheduleCalendar from '../../features/schedule/ScheduleCalendar.astro';
 import { siteUrl } from '../../shared/config/server';
 
@@ -41,7 +41,8 @@ const when = (c: ScheduleClass) => c.unlock_at
   <div class="shell page stack plan">
     <header class="stack compact">
       <p class="kicker">Cronograma del curso</p>
-      <h1 class="panel-title">{data ? data.course.name : 'Cronograma'}</h1>
+      <h1 class="panel-title">{data ? data.program.title : 'Cronograma'}</h1>
+      {data?.program.tagline && <p class="tagline">{data.program.tagline}</p>}
       {data?.admin && <p class="meta">Vista de administración: ves todo el contenido. <a href="/admin/cronograma">Editar cronograma</a></p>}
     </header>
     {message && <p class="notice" role="alert">{message}</p>}
@@ -51,7 +52,7 @@ const when = (c: ScheduleClass) => c.unlock_at
         <section class="summary" aria-label="Resumen del curso">
           <ul class="facts">
             <li><b>40 h</b><span>de formación</span></li>
-            <li><b>4</b><span>semanas</span></li>
+            <li><b>4</b><span>módulos</span></li>
             <li><b>8</b><span>temas</span></li>
             <li><b>20</b><span>clases</span></li>
           </ul>
@@ -87,17 +88,17 @@ const when = (c: ScheduleClass) => c.unlock_at
           <ScheduleCalendar classes={calendarClasses} holidays={data.holidays} done={finished} next={data.next?.class_no ?? null} />
         </section>
 
-        <section class="weeks" aria-label="Semanas del curso">
+        <section class="weeks" aria-label="Módulos del curso">
           {data.weeks.map((week) => {
             const pct = week.total ? Math.round(100 * week.completed / week.total) : 0;
             const topicTitle = new Map(week.topics.map((t) => [t.topic_no, t.title]));
             return (
               <details class="week" id={`semana-${week.week_no}`} open={week.week_no === current}>
                 <summary>
-                  <span class="wn">Semana {week.week_no}</span>
+                  <span class="wn">Módulo {week.week_no}</span>
                   <span class="wt">{week.title}</span>
-                  <span class="wm">{week.total} clases · 10 h · {pct}%</span>
-                  <progress value={pct} max="100" aria-label={`Avance de la semana ${week.week_no}`} />
+                  <span class="wm">{rangeLabel(week.start, week.end)} · {week.total} clases · 10 h · {pct}%</span>
+                  <progress value={pct} max="100" aria-label={`Avance del módulo ${week.week_no}`} />
                 </summary>
                 <div class="wbody">
                   <p class="obj"><b>Objetivo:</b> {week.objective}</p>
@@ -166,6 +167,7 @@ const when = (c: ScheduleClass) => c.unlock_at
                       </div>
                     );
                   })}
+                  {week.result && <p class="result"><b>Resultado del módulo:</b> {week.result}</p>}
                 </div>
               </details>
             );
@@ -190,6 +192,9 @@ const when = (c: ScheduleClass) => c.unlock_at
   .plan { gap: 1.4rem; max-width: 72rem; align-content: start; }
   .plan h1 { font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 700; letter-spacing: -.01em; margin: 0; }
   .meta { color: var(--muted); font-size: .92rem; }
+  .tagline { margin: .2rem 0 0; color: #cfe0ff; font-size: 1.02rem; }
+  .result { margin: 0; padding: .85rem 1rem; border-radius: 12px; background: rgb(53 208 127 / .09); border: 1px solid rgb(53 208 127 / .3); color: #c9f5de; font-size: .9rem; line-height: 1.5; }
+  .result b { color: #8ff0bb; }
   .summary, .weeks { width: 100%; }
   .summary { display: grid; gap: 1.1rem; grid-template-columns: 1fr 1fr; border: 1px solid rgb(255 255 255 / .09); border-radius: 16px; padding: 1.3rem; background: linear-gradient(180deg, rgb(255 255 255 / .045), rgb(255 255 255 / .02)); }
   .facts { grid-column: 1 / -1; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; }

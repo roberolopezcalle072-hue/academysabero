@@ -1,6 +1,6 @@
 ---
 import AdminLayout from '../../features/access-admin/presentation/AdminLayout.astro';
-import { loadSchedule, loadStudents, saveClass, saveSettings, saveWeek, saveSlot, setHoliday, WEEKDAYS, dayMonthDate, longDate } from '../../features/schedule/schedule-api';
+import { loadSchedule, loadStudents, saveClass, saveSettings, saveWeek, saveSlot, setHoliday, WEEKDAYS, dayMonthDate, longDate, rangeLabel } from '../../features/schedule/schedule-api';
 import ScheduleCalendar from '../../features/schedule/ScheduleCalendar.astro';
 import { siteUrl } from '../../shared/config/server';
 
@@ -26,6 +26,7 @@ if (Astro.request.method === 'POST') {
   if (action === 'settings' && UUID.test(text(form, 'course'))) {
     return back(await saveSettings(token, {
       course: text(form, 'course'), startDate: text(form, 'startDate'), unlockTime: text(form, 'unlockTime'), timezone: text(form, 'timezone'),
+      programTitle: text(form, 'programTitle'), tagline: text(form, 'tagline'),
     }), '#calendario');
   }
   if (action === 'slot' && UUID.test(text(form, 'course')) && /^[1-9]$/.test(text(form, 'slot'))) {
@@ -40,7 +41,7 @@ if (Astro.request.method === 'POST') {
   if (action === 'week' && UUID.test(text(form, 'course')) && /^\d{1,2}$/.test(text(form, 'week'))) {
     const topics = [...form.keys()].filter((k) => k.startsWith('topic_')).map((k) => ({ topic_no: Number(k.slice(6)), title: text(form, k) }));
     return back(await saveWeek(token, Number(text(form, 'week')), {
-      course: text(form, 'course'), title: text(form, 'title'), objective: text(form, 'objective'), topics,
+      course: text(form, 'course'), title: text(form, 'title'), objective: text(form, 'objective'), result: text(form, 'result'), topics,
     }), `#semana-${text(form, 'week')}`);
   }
   return back(400);
@@ -72,13 +73,15 @@ const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medi
 
     {data ? (
       <>
-        <p class="meta">{data.course.name} · 4 semanas · 8 temas · 20 clases · 40 horas. Las clases se abren solas según el calendario; aquí puedes adelantarlas, bloquearlas, cargar enlaces y editar el contenido sin perder el progreso de los alumnos.</p>
+        <p class="meta">{data.course.name} · 4 módulos · 8 temas · 20 clases · 40 horas. Las clases se abren solas según el calendario; aquí puedes adelantarlas, bloquearlas, cargar enlaces y editar el contenido sin perder el progreso de los alumnos.</p>
 
         <section id="calendario" class="card">
           <h2>Calendario de la edición</h2>
           <form method="post" class="grid">
             <input type="hidden" name="action" value="settings" />
             <input type="hidden" name="course" value={data.course.id} />
+            <label>Nombre del curso (se muestra en la malla)<input name="programTitle" value={data.settings.program_title ?? ''} maxlength="200" /></label>
+            <label>Frase comercial<input name="tagline" value={data.settings.tagline ?? ''} maxlength="300" /></label>
             <label>Fecha de la primera clase
               <input type="date" name="startDate" value={data.settings.start_date ?? ''} />
               <small>Cualquier día de lunes a viernes. Los fines de semana y feriados se saltan solos. Sin fecha, ninguna clase se abre sola.</small></label>
@@ -154,18 +157,19 @@ const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medi
         </section>
 
         <section class="card">
-          <h2>Semanas, temas y clases</h2>
+          <h2>Módulos, temas y clases</h2>
           {data.weeks.map((week) => (
             <details class="week" id={`semana-${week.week_no}`} open={week.week_no === (data.next?.week_no ?? 1)}>
-              <summary><b>Semana {week.week_no}</b> · {week.title} <span class="meta">({week.total} clases)</span></summary>
+              <summary><b>Módulo {week.week_no}</b> · {week.title} <span class="meta">({rangeLabel(week.start, week.end)} · {week.total} clases)</span></summary>
               <form method="post" class="grid weekform">
                 <input type="hidden" name="action" value="week" />
                 <input type="hidden" name="course" value={data.course.id} />
                 <input type="hidden" name="week" value={week.week_no} />
-                <label>Título de la semana<input name="title" value={week.title} maxlength="160" required /></label>
-                <label>Objetivo semanal<textarea name="objective" rows="2" maxlength="1000">{week.objective}</textarea></label>
+                <label>Título del módulo<input name="title" value={week.title} maxlength="160" required /></label>
+                <label>Objetivo del módulo<textarea name="objective" rows="2" maxlength="1000">{week.objective}</textarea></label>
+                <label>Resultado del módulo<textarea name="result" rows="2" maxlength="1000">{week.result}</textarea></label>
                 {week.topics.map((t) => <label>Tema {t.topic_no}<input name={`topic_${t.topic_no}`} value={t.title} maxlength="160" required /></label>)}
-                <button class="button secondary">Guardar semana</button>
+                <button class="button secondary">Guardar módulo</button>
               </form>
 
               {week.classes.map((c) => (

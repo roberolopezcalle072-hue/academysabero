@@ -98,6 +98,7 @@ export const footerColumns: { title: string; links: FooterLink[] }[] = [
       { label: 'WhatsApp conectado', href: '/#servicios' },
       { label: 'Automatización con Meta', href: '/#servicios' },
       { label: 'Mini CRM y seguimientos', href: '/#servicios' },
+      { label: 'Malla del curso', href: '/cronograma' },
       { label: 'Creación de webs', href: '/#servicios' },
     ],
   },
@@ -120,3 +121,6 @@ export const footerColumns: { title: string; links: FooterLink[] }[] = [
     ],
   },
 ];
+
+/** Enlace de referido de RackNerd. Déjalo vacío si no hay uno: no se muestra nada. */
+export const RACKNERD_REFERRAL_URL = '';

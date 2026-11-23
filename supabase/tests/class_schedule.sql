@@ -35,9 +35,11 @@ do $$ declare c integer; begin
   if exists (select 1 from (select week_no, count(distinct topic_no) n from public.academy_class_plan group by 1) x where n <> 2) then raise exception 'cada semana debe tener 2 temas'; end if;
   if (select sum(duration_minutes) from public.academy_class_plan) <> 2400 then raise exception 'deben ser 40 horas'; end if;
   if exists (select 1 from public.academy_class_plan where class_no <> (week_no - 1) * 5 + weekday) then raise exception 'orden cronológico incorrecto'; end if;
-  if (select title from public.academy_class_plan where class_no = 1) <> 'Introducción a los agentes de IA' then raise exception 'clase 1 distinta'; end if;
-  if (select title from public.academy_class_plan where class_no = 20) <> 'Presentación y evaluación final' then raise exception 'clase 20 distinta'; end if;
+  if (select title from public.academy_class_plan where class_no = 1) <> 'Bienvenida y preparación del proyecto empresarial' then raise exception 'clase 1 distinta'; end if;
+  if (select title from public.academy_class_plan where class_no = 20) <> 'Presenta tu propio sistema de ventas inteligente' then raise exception 'clase 20 distinta'; end if;
   if exists (select 1 from public.academy_class_plan where meet_url is not null or recording_url is not null or material_url is not null) then raise exception 'no deben inventarse enlaces'; end if;
+  if (select title from public.academy_class_plan where class_no = 4) <> 'Configura WhatsApp para tu futuro agente IA' then raise exception 'clase 4 distinta'; end if;
+  if exists (select 1 from public.academy_class_plan where title ~* 'código|programaci|programar' or description ~* 'código|programaci|programar') then raise exception 'titulos o descripciones comerciales no deben hablar de codigo ni programacion'; end if;
   raise notice 'contenido: 4 semanas, 8 temas, 20 clases, 40 horas, sin enlaces inventados OK';
 end $$;
 

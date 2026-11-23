@@ -1,0 +1,26 @@
+---
+import { RACKNERD_REFERRAL_URL } from '../landing/content';
+---
+<section class="ext" aria-label="Servicios externos">
+  <h3>Servicios que contratarás por tu cuenta</h3>
+  <ul>
+    <li><b>Codex</b></li>
+    <li><b>VPS</b> · Contabo o RackNerd
+      {RACKNERD_REFERRAL_URL && <> <a href={RACKNERD_REFERRAL_URL} target="_blank" rel="noopener noreferrer sponsored">Enlace de referido de RackNerd</a><small> (enlace de referido: SABERO puede recibir una comisión)</small></>}
+    </li>
+    <li><b>Dominio</b> · Namecheap u otro proveedor</li>
+    <li><b>Proveedor de inteligencia artificial</b></li>
+    <li><b>WhatsApp Business Platform</b></li>
+  </ul>
+  <p>Estos servicios se contratan y pagan de forma independiente, directamente a cada proveedor.</p>
+</section>
+<style>
+  .ext { border: 1px solid rgb(255 255 255 / .09); border-radius: 16px; padding: 1.2rem 1.4rem; background: rgb(255 255 255 / .03); display: grid; gap: .6rem; }
+  h3 { margin: 0; font-size: 1rem; font-weight: 650; color: #fff; }
+  ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: .5rem; }
+  li { padding: .45rem .85rem; border-radius: 999px; border: 1px solid rgb(92 200 255 / .3); background: rgb(47 123 255 / .1); color: #dbe7ff; font-size: .86rem; }
+  li b { color: #fff; }
+  li a { color: #8ec5ff; font-weight: 600; margin-left: .4rem; }
+  li small { display: block; color: #8fa6d1; font-size: .7rem; }
+  p { margin: 0; color: #8fa6d1; font-size: .84rem; }
+</style>

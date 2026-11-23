@@ -3,7 +3,7 @@ import BaseLayout from '../../shared/presentation/BaseLayout.astro';
 import CampusNavigation from '../../features/learning/presentation/CampusNavigation.astro';
 import { duration, dateTime, lessonUrl } from '../../features/learning/presentation/format';
 import { loadCampus } from '../../features/learning/infrastructure/learning-api';
-import { loadSchedule, longDate, shortDate, WEEKDAYS } from '../../features/schedule/schedule-api';
+import { loadSchedule, longDate, shortDate, rangeLabel, WEEKDAYS } from '../../features/schedule/schedule-api';
 
 const token = Astro.locals.accessToken;
 if (!token) return Astro.redirect('/ingresar', 303);
@@ -103,10 +103,10 @@ const phaseText: Record<string, string> = { today: 'Hoy', next: 'Próxima clase'
                 return (
                   <li class={current ? 'now' : ''}>
                     <a href={`/campus/cronograma#semana-${w.week_no}`}>
-                      <span class="wk">Semana {w.week_no}</span>
+                      <span class="wk">Módulo {w.week_no}</span>
                       <span class="wt">{w.title}</span>
                       <span class="bar"><i style={`width:${pct}%`}></i></span>
-                      <span class="wm">{w.completed}/{w.total} clases · 10 h</span>
+                      <span class="wm">{rangeLabel(w.start, w.end)} · {w.completed}/{w.total} clases</span>
                     </a>
                   </li>
                 );

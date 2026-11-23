@@ -4,6 +4,7 @@ import PromoTimer from '../../../features/enrollment/PromoTimer.astro';
 import { loadCatalog, loadPaymentsConfig } from '../../../features/enrollment/infrastructure/enrollment-api';
 import { money, moneyIn } from '../../../features/landing/promo';
 import CourseRequirements from '../../../features/enrollment/CourseRequirements.astro';
+import ExternalServices from '../../../features/enrollment/ExternalServices.astro';
 import ScheduleCalendar from '../../../features/schedule/ScheduleCalendar.astro';
 import { loadPublicSchedule, slotRange, longDate } from '../../../features/schedule/schedule-api';
 const COUNTRIES = ['Perú', 'Argentina', 'Bolivia', 'Brasil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Ecuador', 'El Salvador', 'España', 'Estados Unidos', 'Guatemala', 'Honduras', 'México', 'Nicaragua', 'Panamá', 'Paraguay', 'Puerto Rico', 'República Dominicana', 'Uruguay', 'Venezuela'];
@@ -46,21 +47,12 @@ const prices = JSON.stringify({ usd: [course.price_regular, course.price_offer, 
         <div class="when dk-card">
           <h2>Cuándo empieza</h2>
           <p class="range"><b>{cap(longDate(plan.start_date))}</b> al <b>{longDate(plan.end_date)}</b></p>
-          <p class="soft">20 clases en vivo de lunes a viernes · 2 horas por clase. Receso por Navidad y Año Nuevo.</p>
+          <p class="soft">20 clases en vivo · 2 horas por clase. Sin clases el 24 y 25 de diciembre, el 31 de diciembre y el 1 de enero.</p>
           <ScheduleCalendar classes={plan.classes} holidays={plan.holidays} />
+          <a class="morelink" href="/cronograma" target="_blank" rel="noopener">Ver la malla completa: 4 módulos y 20 clases</a>
         </div>
       )}
-      <div class="need dk-card">
-        <h2>Para obtener algo funcional necesitarás</h2>
-        <ul>
-          <li>Un servidor <strong>VPS</strong></li>
-          <li>Un <strong>dominio</strong> propio</li>
-          <li>Un <strong>plan de suscripción</strong> de las herramientas</li>
-          <li>Los <strong>códigos</strong> o licencias necesarios</li>
-          <li><strong>DeepSeek</strong> para las respuestas del agente</li>
-        </ul>
-        <p>Te asesoramos nosotros en cada paso. Estos costos son aparte del precio del curso.</p>
-      </div>
+      <ExternalServices />
     </div>
 
     <form class="form dk-card" action="/cuenta/solicitar" method="post" data-pay={payments.enabled ? '1' : undefined} data-prices={prices}>
@@ -168,6 +160,8 @@ const prices = JSON.stringify({ usd: [course.price_regular, course.price_offer, 
   .when { padding: 1.2rem 1.4rem; display: grid; gap: .6rem; width: 100%; max-width: 34rem; border-radius: 20px; }
   .when h2 { font-size: 1.05rem; }
   .range { margin: 0; color: #fff; }
+  .morelink { color: #8ec5ff; font-weight: 600; font-size: .9rem; text-decoration: none; }
+  .morelink:hover { color: #fff; }
   .soft { margin: 0; color: #aebfdc; font-size: .86rem; }
   .slots { border: 1px solid rgb(255 255 255 / .12); border-radius: 14px; padding: .9rem 1rem 1rem; display: grid; gap: .55rem; margin: .4rem 0; }
   .slots legend { font-weight: 700; padding-inline: .4rem; }
