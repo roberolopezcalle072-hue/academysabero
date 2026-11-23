@@ -9,11 +9,16 @@ export const POST: APIRoute = async (context) => {
   if (String(form.get('website') ?? '') !== '') return context.redirect('/libro-de-reclamaciones?estado=servicio', 303);
   const get = (key: string) => String(form.get(key) ?? '');
 
+  // Es menor de edad si indicó el nombre del padre o madre. El tipo de bien se antepone a la descripción.
+  const guardian = get('guardian').trim();
+  const goodType = get('goodType') === 'Producto' ? 'Producto' : 'Servicio';
+  const service = `${goodType}: ${get('service').trim()}`.slice(0, 200);
+
   try {
     const response = await apiRequest('/complaints', undefined, {
       kind: get('kind'), fullName: get('fullName'), docType: get('docType'), docNumber: get('docNumber'),
-      address: get('address'), phone: get('phone'), email: get('email'), isMinor: form.get('isMinor') === 'on',
-      guardian: get('guardian'), service: get('service'), amount: get('amount'), detail: get('detail'),
+      address: get('address'), phone: get('phone'), email: get('email'), isMinor: guardian.length > 0,
+      guardian, service, amount: get('amount'), detail: get('detail'),
       request: get('request'), acceptTruth: form.get('acceptTruth') === 'on',
     }, 15000);
     if (response.status === 201) {

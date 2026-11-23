@@ -12,84 +12,128 @@ const message = state ? messages.get(state) : undefined;
 ---
 <BaseLayout title="Libro de Reclamaciones" description="Libro de Reclamaciones virtual de SABERO Academy: registra un reclamo o una queja sobre nuestros servicios.">
   <section class="shell page libro">
-    <header class="stack compact">
-      <p class="kicker">Libro de Reclamaciones</p>
-      <h1 class="panel-title">Hoja de Reclamación</h1>
-      {(COMPANY.legalName || COMPANY.ruc) && (
-        <p class="company">
-          {COMPANY.legalName && <b>{COMPANY.legalName}</b>} {COMPANY.ruc && <>· RUC {COMPANY.ruc}</>} {COMPANY.address && <>· {COMPANY.address}</>}
-        </p>
-      )}
-      <p class="intro"><strong>Reclamo:</strong> disconformidad con el producto o servicio contratado. <strong>Queja:</strong> malestar con la atención al cliente, sin relación con el servicio en sí.</p>
-    </header>
+    <form class="sheet" action="/libro-de-reclamaciones/enviar" method="post">
+      <header class="sheet-head">
+        <span class="head-spacer" aria-hidden="true"></span>
+        <div class="head-title">
+          <h1>LIBRO DE RECLAMACIONES</h1>
+          <p>(Ley N° 29571, Código de Protección y Defensa del Consumidor)</p>
+        </div>
+        <img class="head-logo" src="/logos/logoapp.webp" alt="SABERO ACADEMY" width="180" height="60" />
+      </header>
 
-    {message && <p class="notice" role="alert">{message}</p>}
+      {message && <p class="notice" role="alert">{message}</p>}
 
-    <form class="form" action="/libro-de-reclamaciones/enviar" method="post">
-      <fieldset>
-        <legend>1. Identificación del consumidor</legend>
-        <div class="row">
-          <div><label for="fullName">Nombre completo</label><input id="fullName" name="fullName" maxlength="120" autocomplete="name" required /></div>
-        </div>
-        <div class="row two">
-          <div><label for="docType">Tipo de documento</label>
-            <select id="docType" name="docType" required><option>DNI</option><option>CE</option><option>PASAPORTE</option><option>RUC</option><option>OTRO</option></select></div>
-          <div><label for="docNumber">Número de documento</label><input id="docNumber" name="docNumber" maxlength="20" required /></div>
-        </div>
-        <div class="row"><div><label for="address">Domicilio</label><input id="address" name="address" maxlength="200" autocomplete="street-address" required /></div></div>
-        <div class="row two">
-          <div><label for="phone">Teléfono</label><input id="phone" name="phone" type="tel" maxlength="30" autocomplete="tel" required /></div>
-          <div><label for="email">Correo electrónico</label><input id="email" name="email" type="email" maxlength="254" autocomplete="email" required /></div>
-        </div>
-        <label class="check"><input type="checkbox" name="isMinor" id="isMinor" /><span>Soy menor de edad y presento este reclamo con mi padre, madre o apoderado.</span></label>
-        <div class="row" id="guardianRow" hidden><div><label for="guardian">Nombre del padre, madre o apoderado</label><input id="guardian" name="guardian" maxlength="120" /></div></div>
-      </fieldset>
+      <h2 class="bar">I. Datos de la empresa</h2>
+      <dl class="info">
+        <div><dt>Razón Social</dt><dd>{COMPANY.legalName}</dd></div>
+        <div><dt>RUC</dt><dd>{COMPANY.ruc}</dd></div>
+        <div><dt>Dirección</dt><dd>{COMPANY.address}</dd></div>
+      </dl>
 
-      <fieldset>
-        <legend>2. Identificación del servicio contratado</legend>
-        <div class="row two">
-          <div><label for="service">Servicio o curso</label><input id="service" name="service" maxlength="200" value="SABERO Academy" required /></div>
-          <div><label for="amount">Monto reclamado <small>(opcional)</small></label><input id="amount" name="amount" maxlength="40" placeholder="S/ 0.00" /></div>
-        </div>
-      </fieldset>
+      <h2 class="bar">II. Identificación del consumidor</h2>
+      <div class="field"><label for="fullName">Nombres y Apellidos <i>*</i></label>
+        <input id="fullName" name="fullName" maxlength="120" autocomplete="name" placeholder="Ingrese sus nombres y apellidos" required /></div>
+      <div class="field"><label for="address">Domicilio <i>*</i></label>
+        <input id="address" name="address" maxlength="200" autocomplete="street-address" placeholder="Ingrese su domicilio" required /></div>
+      <div class="field"><label for="docNumber">DNI / CE <i>*</i></label>
+        <div class="inline">
+          <select id="docType" name="docType" aria-label="Tipo de documento" required>
+            <option>DNI</option><option>CE</option><option>PASAPORTE</option><option>RUC</option><option>OTRO</option>
+          </select>
+          <input id="docNumber" name="docNumber" maxlength="20" placeholder="N° de DNI o Carné de Extranjería" required />
+        </div></div>
+      <div class="field"><label for="phone">Teléfono <i>*</i></label>
+        <input id="phone" name="phone" type="tel" maxlength="30" autocomplete="tel" placeholder="Teléfono de contacto" required /></div>
+      <div class="field"><label for="email">Correo Electrónico <i>*</i></label>
+        <input id="email" name="email" type="email" maxlength="254" autocomplete="email" placeholder="correo@ejemplo.com" required /></div>
+      <div class="field"><label for="guardian">Padre o Madre <small>(si es menor de edad)</small></label>
+        <input id="guardian" name="guardian" maxlength="120" placeholder="Nombre del padre o madre" /></div>
 
-      <fieldset>
-        <legend>3. Detalle de la reclamación y pedido del consumidor</legend>
-        <div class="row two">
-          <div><label for="kind">Tipo</label>
-            <select id="kind" name="kind" required><option value="reclamo">Reclamo</option><option value="queja">Queja</option></select></div>
-        </div>
-        <div class="row"><div><label for="detail">Detalle <small>(describe lo ocurrido)</small></label><textarea id="detail" name="detail" rows="5" minlength="10" maxlength="2000" required></textarea></div></div>
-        <div class="row"><div><label for="request">Pedido del consumidor <small>(qué solicitas)</small></label><textarea id="request" name="request" rows="3" minlength="5" maxlength="1000" required></textarea></div></div>
-      </fieldset>
+      <h2 class="bar">III. Identificación del bien contratado</h2>
+      <div class="field"><span class="lab">Tipo de Bien <i>*</i></span>
+        <div class="choices">
+          <label class="radio"><input type="radio" name="goodType" value="Producto" /> Producto</label>
+          <label class="radio"><input type="radio" name="goodType" value="Servicio" checked /> Servicio</label>
+        </div></div>
+      <div class="field"><label for="amount">Monto Reclamado (US$)</label>
+        <input id="amount" name="amount" class="short" maxlength="40" inputmode="decimal" placeholder="0.00" /></div>
+      <div class="field"><label for="service">Descripción del Bien <i>*</i></label>
+        <textarea id="service" name="service" rows="2" minlength="3" maxlength="180" required placeholder="Describa el producto o servicio contratado">SABERO Academy</textarea></div>
+
+      <h2 class="bar">IV. Reclamo o queja</h2>
+      <div class="field"><span class="lab">Tipo <i>*</i></span>
+        <div class="choices">
+          <label class="radio"><input type="radio" name="kind" value="reclamo" checked /> Reclamo</label>
+          <label class="radio"><input type="radio" name="kind" value="queja" /> Queja</label>
+        </div></div>
+      <p class="hint"><strong>Reclamo:</strong> disconformidad con el producto o servicio contratado. <strong>Queja:</strong> malestar con la atención al cliente, sin relación con el servicio en sí.</p>
+
+      <h2 class="bar">V. Detalle</h2>
+      <div class="field"><label for="detail">Detalle de la Reclamación <i>*</i></label>
+        <textarea id="detail" name="detail" rows="4" minlength="10" maxlength="2000" required placeholder="Describa detalladamente los hechos que motivan su reclamo o queja..."></textarea></div>
+      <div class="field"><label for="request">Pedido del Consumidor <i>*</i></label>
+        <textarea id="request" name="request" rows="3" minlength="5" maxlength="1000" required placeholder="¿Qué es lo que solicita como solución?"></textarea></div>
 
       <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
-      <label class="check"><input type="checkbox" name="acceptTruth" required /><span>Declaro que la información consignada es verdadera. La formulación del reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el Indecopi.</span></label>
-      <button class="button primary">Enviar hoja de reclamación</button>
+      <div class="foot">
+        <label class="check"><input type="checkbox" name="acceptTruth" required /><span>Declaro que la información consignada es verdadera. La formulación del reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el Indecopi.</span></label>
+        <button class="send">ENVIAR RECLAMO</button>
+        <p class="legal">Al enviar, acepta los términos del Libro de Reclamaciones de {COMPANY.legalName}</p>
+      </div>
     </form>
   </section>
 </BaseLayout>
-<script>
-  const box = document.getElementById('isMinor') as HTMLInputElement | null;
-  const row = document.getElementById('guardianRow');
-  const guardian = document.getElementById('guardian') as HTMLInputElement | null;
-  box?.addEventListener('change', () => { if (row && guardian) { row.hidden = !box.checked; guardian.required = box.checked; } });
-</script>
 <style>
-  .libro { max-width: 52rem; display: grid; gap: 1.25rem; }
-  .intro { color: var(--muted); }
-  .company { color: var(--muted); font-size: .9rem; }
-  .form { display: grid; gap: 1.1rem; }
-  fieldset { border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.25rem 1.25rem; display: grid; gap: .8rem; margin: 0; background: var(--white); }
-  legend { font-weight: 800; color: var(--navy); padding-inline: .4rem; }
-  .row { display: grid; gap: .8rem; }
-  .row.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .row > div { display: grid; gap: .35rem; min-width: 0; }
-  label { font-weight: 600; font-size: .9rem; color: var(--navy); }
-  label small { font-weight: 400; color: var(--muted); }
-  textarea { font: inherit; border: 1px solid #b6c6d4; border-radius: 10px; padding: .6rem .75rem; resize: vertical; }
-  .check { display: flex; gap: .6rem; align-items: flex-start; font-weight: 400; color: var(--muted); }
-  .check input { margin-top: .25rem; min-height: 0; }
+  .libro { max-width: 52rem; }
+  .sheet { background: #fff; border: 1px solid #dfe5ec; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgb(16 32 51 / .06); color: #1a2433; }
+  .sheet-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; padding: 1.6rem 1.5rem 1.3rem; }
+  .head-title { text-align: center; }
+  .head-title h1 { margin: 0; font-size: clamp(1.35rem, 3.6vw, 1.9rem); font-weight: 800; letter-spacing: .01em; line-height: 1.15; }
+  .head-title p { margin: .35rem 0 0; font-size: .85rem; color: #5b6878; }
+  .head-logo { justify-self: end; height: 38px; width: auto; }
+  .bar { margin: 0; padding: .7rem 1.5rem; background: #f1f3f6; border-block: 1px solid #dfe5ec; font-size: .8rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #1a2433; }
+  .field, .info > div { display: grid; grid-template-columns: minmax(9rem, 28%) minmax(0, 1fr); align-items: center; border-bottom: 1px solid #e6ebf0; }
+  .field > label, .field > .lab, .info dt { align-self: stretch; display: flex; flex-wrap: wrap; align-content: center; align-items: baseline; column-gap: .25rem; padding: .85rem 1.5rem; background: #f8f9fb; border-right: 1px solid #e6ebf0; font-size: .88rem; font-weight: 700; color: #2b3646; }
+  .field > label small { flex-basis: 100%; font-weight: 400; font-size: .72rem; color: #6b7686; }
+  .field i { color: #dc2626; font-style: normal; }
+  .field > input, .field > select, .field > textarea, .inline { margin: .6rem 1.5rem; }
+  .field input, .field select, .field textarea { width: auto; font: inherit; font-size: .9rem; color: #1a2433; background: #fff; border: 1px solid #cdd5de; border-radius: 8px; padding: .55rem .75rem; min-height: 0; }
+  .field > input, .field > textarea { width: calc(100% - 3rem); }
+  .field textarea { resize: vertical; }
+  .field input::placeholder, .field textarea::placeholder { color: #98a2b0; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid #dc262633; border-color: #dc2626; }
+  .field > input.short { width: min(14rem, calc(100% - 3rem)); }
+  .inline { display: flex; gap: .5rem; }
+  .inline select { flex: 0 0 auto; }
+  .inline input { flex: 1; min-width: 0; }
+  .choices { display: flex; flex-wrap: wrap; gap: .4rem 1.6rem; margin: .6rem 1.5rem; }
+  .radio { display: inline-flex; align-items: center; gap: .45rem; font-size: .9rem; color: #2b3646; cursor: pointer; }
+  .radio input { width: 1rem; height: 1rem; margin: 0; padding: 0; accent-color: #2563eb; }
+  .info dd { margin: 0; padding: .85rem 1.5rem; font-size: .9rem; }
+  .info { margin: 0; }
+  .hint { margin: 0; max-width: none; padding: .75rem 1.5rem; font-size: .8rem; color: #5b6878; border-bottom: 1px solid #e6ebf0; }
+  .notice { margin: 0 1.5rem 1rem; }
+  .foot { padding: 1.1rem 1.5rem 1.4rem; display: grid; gap: .9rem; border-top: 1px solid #dfe5ec; }
+  .check { display: flex; gap: .6rem; align-items: flex-start; font-size: .8rem; color: #5b6878; }
+  .check input { margin-top: .2rem; min-height: 0; accent-color: #dc2626; }
+  .send { width: 100%; border: 0; border-radius: 8px; background: #dc2626; color: #fff; font: inherit; font-size: .9rem; font-weight: 800; letter-spacing: .04em; padding: .85rem 1rem; cursor: pointer; }
+  .send:hover { background: #b91c1c; }
+  .send:focus-visible { outline: 3px solid #dc262655; outline-offset: 2px; }
+  .legal { margin: 0; max-width: none; text-align: center; font-size: .75rem; color: #6b7686; }
   .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
-  @media (max-width: 40rem) { .row.two { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 40rem) {
+    .sheet-head { grid-template-columns: 1fr; justify-items: center; gap: .7rem; padding: 1.2rem 1rem; }
+    .head-spacer { display: none; }
+    .head-logo { justify-self: center; order: -1; }
+    .bar { padding-inline: 1rem; }
+    .field, .info > div { grid-template-columns: minmax(0, 1fr); }
+    .field > label, .field > .lab, .info dt { border-right: 0; padding: .6rem 1rem .2rem; background: transparent; font-size: .82rem; }
+    .field > input, .field > select, .field > textarea, .inline, .choices { margin: .15rem 1rem .8rem; }
+    .field > input, .field > textarea { width: calc(100% - 2rem); }
+    .field > input.short { width: calc(100% - 2rem); }
+    .info dd { padding: 0 1rem .8rem; }
+    .hint { padding-inline: 1rem; }
+    .foot { padding-inline: 1rem; }
+  }
 </style>

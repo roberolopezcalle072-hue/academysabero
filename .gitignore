@@ -11,3 +11,6 @@ dist/
 *.pem
 ssh-key-*
 .vercel/
+
+# Credenciales de Google descargadas (nunca al repositorio)
+client_secret_*.json
