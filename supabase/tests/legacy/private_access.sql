@@ -1,3 +1,4 @@
+-- OBSOLETA: probaba el modelo antiguo (solo correos autorizados). El registro abierto la reemplazó (ver open_registration.sql).
 -- Run as database owner on an isolated test project. All test rows are rolled back.
 \set ON_ERROR_STOP on
 begin;
@@ -44,16 +45,7 @@ begin
 end;
 $$;
 
-set local role supabase_auth_admin;
-do $$
-begin
-  if public.academy_before_user_created('{"user":{"email":"student@example.invalid","app_metadata":{"provider":"google"}}}') <> '{}'::jsonb
-      or not (public.academy_before_user_created('{"user":{"email":"denied@example.invalid","app_metadata":{"provider":"google"}}}') ? 'error')
-      or not (public.academy_before_user_created('{"user":{"email":"student@example.invalid","app_metadata":{"provider":"email"}}}') ? 'error') then
-    raise exception 'Unexpected account creation decision';
-  end if;
-end;
-$$;
+-- (La comprobación del hook de Supabase Auth se eliminó: el backend revisa los correos revocados al registrarse.)
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'ff000000-0000-4000-8000-000000000004', true);
