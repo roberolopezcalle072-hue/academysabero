@@ -25,28 +25,24 @@ const inProgress = session && new Date(session.starts_at).getTime() <= Date.now(
     </header>
     {data ? (
       <>
-        <div class="agenda">
-          <section class="stack compact">
-            <h2>Tu siguiente actividad</h2>
-            {next ? (
-              <>
-                <p class="kicker">{next.course} · Día {next.day_number}</p>
-                <h3>{next.title}</h3>
-                <a class="button primary" href={lessonUrl(next.course_id, next.id)}>Continuar lección</a>
-              </>
-            ) : <p>No tienes actividades pendientes.</p>}
-          </section>
-          <section id="sesion" class="stack compact">
-            <h2>{inProgress ? 'Sesión en curso' : 'Próxima sesión en vivo'}</h2>
+        <div class={`agenda ${next ? '' : 'solo'}`}>
+          <section id="sesion" class="stack compact live">
+            <h2>{inProgress ? 'Sesión en vivo en curso' : 'Próxima sesión en vivo'}</h2>
             {session ? (
               <>
                 <h3>{session.title}</h3>
-                <p>{session.course} · <time datetime={session.starts_at}>{dateTime(session.starts_at)} (Lima)</time></p>
-                <a class="button secondary" href={session.meet_url} target="_blank" rel="noopener noreferrer">Abrir Google Meet</a>
+                <p>{session.course} · <time datetime={session.starts_at}>{dateTime(session.starts_at)} (hora de Lima)</time></p>
+                <a class="button primary" href={session.meet_url} target="_blank" rel="noopener noreferrer">{inProgress ? 'Entrar ahora a Google Meet' : 'Abrir enlace de Google Meet'}</a>
               </>
-            ) : <p>No hay sesiones programadas.</p>}
-            {Astro.locals.member?.role === 'student' && <a href="/campus/sesiones">Ver agenda y grabaciones</a>}
+            ) : <p>Aún no hay una sesión programada. Cuando se publique, aquí aparecerá el enlace para conectarte.</p>}
+            {Astro.locals.member?.role === 'student' && <a href="/campus/sesiones">Ver agenda y grabaciones de clases anteriores</a>}
           </section>
+          {next && <section class="stack compact">
+            <h2>Material pendiente</h2>
+            <p class="kicker">{next.course} · Día {next.day_number}</p>
+            <h3>{next.title}</h3>
+            <a class="button secondary" href={lessonUrl(next.course_id, next.id)}>Continuar</a>
+          </section>}
         </div>
         <section id="cursos" class="stack compact full">
           <h2>Mis cursos</h2>
@@ -84,6 +80,7 @@ const inProgress = session && new Date(session.starts_at).getTime() <= Date.now(
   .campus-home { gap: 2.75rem; }
   .full, .agenda, .course-list, .pending { width: 100%; }
   .agenda { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.5rem; }
+  .agenda.solo { grid-template-columns: minmax(0, 1fr); }
   .agenda section { align-content: start; border: 1px solid var(--line); padding: 1.5rem; background: var(--light); }
   .course-list, .pending { list-style: none; margin: 0; padding: 0; }
   .course-list li { display: grid; grid-template-columns: 10rem minmax(0, 1fr) auto; gap: 1.25rem; align-items: center; padding-block: 1rem; border-bottom: 1px solid var(--line); }
