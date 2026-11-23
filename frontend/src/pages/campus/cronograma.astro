@@ -1,0 +1,234 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import CampusNavigation from '../../features/learning/presentation/CampusNavigation.astro';
+import { loadSchedule, setClassDone, longDate, shortDate, lines, WEEKDAYS, type ScheduleClass } from '../../features/schedule/schedule-api';
+import { siteUrl } from '../../shared/config/server';
+
+const token = Astro.locals.accessToken;
+if (!token) return Astro.redirect('/ingresar', 303);
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+let message = '';
+
+if (Astro.request.method === 'POST') {
+  if (Astro.request.headers.get('origin') !== siteUrl().origin) return new Response(null, { status: 403 });
+  const form = await Astro.request.formData();
+  const id = String(form.get('id') ?? '');
+  const no = /^\d{1,2}$/.test(String(form.get('no'))) ? String(form.get('no')) : '';
+  if (UUID.test(id)) {
+    const ok = await setClassDone(token, id, form.get('done') === '1');
+    return Astro.redirect(`/campus/cronograma?${ok ? '' : 'error=1'}#clase-${no}`, 303);
+  }
+}
+if (Astro.url.searchParams.get('error')) message = 'No se pudo guardar. Inténtalo de nuevo.';
+
+const data = await loadSchedule(token);
+if (!data) Astro.response.status = Astro.locals.member ? 404 : 503;
+const current = data?.next?.week_no ?? 1;
+const phaseLabel: Record<string, string> = { executed: 'Ejecutada', today: 'Hoy', next: 'Próxima', pending: 'Pendiente' };
+const when = (c: ScheduleClass) => c.unlock_at
+  ? new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: data?.settings.timezone ?? 'America/Lima' }).format(new Date(c.unlock_at))
+  : null;
+---
+<BaseLayout title="Cronograma" privatePage dark>
+  <div class="dk campus">
+  <CampusNavigation />
+  <div class="shell page stack plan">
+    <header class="stack compact">
+      <p class="kicker">Cronograma del curso</p>
+      <h1 class="panel-title">{data ? data.course.name : 'Cronograma'}</h1>
+      {data?.admin && <p class="meta">Vista de administración: ves todo el contenido. <a href="/admin/cronograma">Editar cronograma</a></p>}
+    </header>
+    {message && <p class="notice" role="alert">{message}</p>}
+
+    {data ? (
+      <>
+        <section class="summary" aria-label="Resumen del curso">
+          <ul class="facts">
+            <li><b>40 h</b><span>de formación</span></li>
+            <li><b>4</b><span>semanas</span></li>
+            <li><b>8</b><span>temas</span></li>
+            <li><b>20</b><span>clases</span></li>
+          </ul>
+          <div class="progress-box">
+            <p class="plabel"><span>Tu avance</span><b>{data.percent}%</b></p>
+            <progress value={data.percent} max="100" aria-label="Avance total del curso" />
+            <p class="meta">{data.completed} de {data.total} clases completadas</p>
+          </div>
+          <div class="upnext">
+            {data.next ? (
+              <>
+                <p class="kicker">{data.next.phase === 'today' ? 'Clase de hoy' : 'Próxima clase'}</p>
+                <h2>Clase {data.next.class_no}: {data.next.title}</h2>
+                <p class="meta">
+                  {data.next.date ? <>{longDate(data.next.date)} · hora de Lima</> : 'Fecha por confirmar'}
+                </p>
+                {data.next.unlocked && data.next.meet_url
+                  ? <a class="button primary" href={data.next.meet_url} target="_blank" rel="noopener noreferrer">Unirme a la reunión (Google Meet)</a>
+                  : <a class="button secondary" href={`#clase-${data.next.class_no}`}>Ver esta clase</a>}
+              </>
+            ) : <p>Todas las clases del cronograma ya fueron ejecutadas.</p>}
+          </div>
+          {!data.settings.start_date && <p class="notice">La fecha de inicio todavía no fue publicada. Las clases se abrirán según el calendario.</p>}
+        </section>
+
+        <section class="weeks" aria-label="Semanas del curso">
+          {data.weeks.map((week) => {
+            const pct = week.total ? Math.round(100 * week.completed / week.total) : 0;
+            const topicTitle = new Map(week.topics.map((t) => [t.topic_no, t.title]));
+            return (
+              <details class="week" open={week.week_no === current}>
+                <summary>
+                  <span class="wn">Semana {week.week_no}</span>
+                  <span class="wt">{week.title}</span>
+                  <span class="wm">{week.total} clases · 10 h · {pct}%</span>
+                  <progress value={pct} max="100" aria-label={`Avance de la semana ${week.week_no}`} />
+                </summary>
+                <div class="wbody">
+                  <p class="obj"><b>Objetivo:</b> {week.objective}</p>
+                  {week.topics.map((topic) => {
+                    const classes = week.classes.filter((c) => c.topic_no === topic.topic_no);
+                    return (
+                      <div class="topic">
+                        <h3>Tema {topic.topic_no} · {topicTitle.get(topic.topic_no)}</h3>
+                        <ol class="classes">
+                          {classes.map((c) => (
+                            <li id={`clase-${c.class_no}`} class={`cl ${c.phase} ${c.unlocked ? 'open' : 'locked'}`}>
+                              <details>
+                                <summary>
+                                  <span class="num">{c.class_no}</span>
+                                  <span class="info">
+                                    <b>{c.title}</b>
+                                    <small>{WEEKDAYS[c.weekday - 1]}{c.date ? ` · ${shortDate(c.date)}` : ''} · 2 h</small>
+                                  </span>
+                                  <span class="chips">
+                                    <span class={`chip ${c.phase}`}>{phaseLabel[c.phase]}</span>
+                                    {c.completed && <span class="chip done">✓ Completada</span>}
+                                    {!c.unlocked && <span class="chip lock">{c.manual === 'blocked' ? 'Bloqueada' : 'Aún no disponible'}</span>}
+                                  </span>
+                                </summary>
+                                <div class="cbody">
+                                  {c.description && <p>{c.description}</p>}
+                                  {c.unlocked ? (
+                                    <>
+                                      <div class="links">
+                                        {c.meet_url
+                                          ? <a class="button primary" href={c.meet_url} target="_blank" rel="noopener noreferrer">Unirme a la reunión</a>
+                                          : <span class="empty">El enlace de la reunión se publicará aquí.</span>}
+                                        {c.recording_url
+                                          ? <a class="button secondary" href={c.recording_url} target="_blank" rel="noopener noreferrer">Ver grabación</a>
+                                          : <span class="empty">La grabación aparecerá cuando la clase termine.</span>}
+                                        {c.material_url
+                                          ? <a class="button secondary" href={c.material_url} target="_blank" rel="noopener noreferrer">Abrir material</a>
+                                          : <span class="empty">Sin material adicional por ahora.</span>}
+                                      </div>
+                                      <div class="cols">
+                                        <div><h4>Objetivos de aprendizaje</h4><ul>{lines(c.objectives).map((l) => <li>{l}</li>)}</ul></div>
+                                        <div><h4>Contenido del día</h4><ul>{lines(c.content).map((l) => <li>{l}</li>)}</ul></div>
+                                      </div>
+                                      <p><b>Actividad práctica:</b> {c.activity}</p>
+                                      <p><b>Resultado esperado:</b> {c.outcome}</p>
+                                      <p class="meta">Estructura de la clase: 30 min de explicación y demostración · 70 min de configuración práctica · 20 min de pruebas, preguntas y retroalimentación.</p>
+                                      {!data.admin && (
+                                        <form method="post" action="/campus/cronograma">
+                                          <input type="hidden" name="id" value={c.id} />
+                                          <input type="hidden" name="no" value={c.class_no} />
+                                          <input type="hidden" name="done" value={c.completed ? '0' : '1'} />
+                                          <button class={c.completed ? 'button secondary' : 'button primary'}>{c.completed ? 'Desmarcar como completada' : 'Marcar como completada'}</button>
+                                        </form>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <p class="meta">{c.manual === 'blocked'
+                                      ? 'La administración bloqueó esta clase por ahora.'
+                                      : when(c) ? `Se abrirá el ${when(c)} (hora de Lima).` : 'Se abrirá cuando se publique la fecha de inicio.'}</p>
+                                  )}
+                                </div>
+                              </details>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+            );
+          })}
+        </section>
+      </>
+    ) : <p class="notice" role="status">Tu cronograma aparecerá aquí cuando tengas un curso activo.</p>}
+  </div>
+  </div>
+</BaseLayout>
+<style>
+  .plan { gap: 1.6rem; max-width: 62rem; }
+  .meta { color: var(--muted); font-size: .92rem; }
+  .summary, .weeks { width: 100%; }
+  .summary { display: grid; gap: 1.1rem; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 16px; padding: 1.3rem; background: var(--light); }
+  .facts { grid-column: 1 / -1; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; }
+  .facts li { display: grid; gap: .1rem; text-align: center; padding: .6rem .3rem; border: 1px solid var(--line); border-radius: 12px; }
+  .facts b { font-size: 1.35rem; color: #fff; }
+  .facts span { font-size: .78rem; color: var(--muted); }
+  .progress-box { display: grid; gap: .45rem; align-content: start; }
+  .plabel { display: flex; justify-content: space-between; margin: 0; }
+  .plabel b { color: #fff; font-size: 1.1rem; }
+  progress { width: 100%; height: .6rem; }
+  .upnext { display: grid; gap: .45rem; align-content: start; }
+  .upnext h2 { margin: 0; font-size: 1.1rem; }
+  .upnext .button { justify-self: start; }
+  .summary > .notice { grid-column: 1 / -1; margin: 0; }
+  .weeks { display: grid; gap: .8rem; }
+  .week { border: 1px solid var(--line); border-radius: 16px; background: var(--light); overflow: clip; }
+  .week > summary { display: grid; grid-template-columns: auto 1fr auto; gap: .2rem 1rem; align-items: center; padding: 1rem 1.2rem; cursor: pointer; list-style: none; }
+  .week > summary::-webkit-details-marker { display: none; }
+  .week > summary::after { content: "⌄"; grid-column: 3; grid-row: 1; justify-self: end; font-size: 1.2rem; color: #8ec5ff; transition: transform .2s; }
+  .week[open] > summary::after { transform: rotate(180deg); }
+  .wn { font-weight: 800; color: #5cc8ff; }
+  .wt { font-weight: 700; color: #fff; }
+  .wm { grid-column: 2; font-size: .82rem; color: var(--muted); }
+  .week > summary progress { grid-column: 1 / -1; height: .35rem; }
+  .wbody { padding: .2rem 1.2rem 1.2rem; display: grid; gap: 1.1rem; }
+  .obj { margin: 0; color: var(--muted); }
+  .topic h3 { margin: 0 0 .5rem; font-size: .95rem; letter-spacing: .01em; }
+  .classes { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+  .cl { border: 1px solid var(--line); border-radius: 12px; background: rgb(255 255 255 / .03); }
+  .cl.today, .cl.next { border-color: #2f95ff; box-shadow: 0 0 0 1px #2f95ff55; }
+  .cl.locked > details > summary .info b { color: var(--muted); }
+  .cl summary { display: grid; grid-template-columns: auto 1fr auto; gap: .8rem; align-items: center; padding: .8rem 1rem; cursor: pointer; list-style: none; }
+  .cl summary::-webkit-details-marker { display: none; }
+  .num { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid var(--line); font-weight: 800; font-size: .85rem; color: #fff; }
+  .cl.executed .num { background: #14804a; border-color: #14804a; }
+  .cl.today .num, .cl.next .num { background: #1d6fe0; border-color: #1d6fe0; }
+  .info { display: grid; gap: .1rem; min-width: 0; }
+  .info b { color: #fff; font-weight: 700; }
+  .info small { color: var(--muted); font-size: .8rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: flex-end; }
+  .chip { font-size: .72rem; font-weight: 700; padding: .18rem .55rem; border-radius: 999px; border: 1px solid var(--line); color: #dbe7ff; white-space: nowrap; }
+  .chip.executed { background: #14804a33; border-color: #14804a; color: #7be0a8; }
+  .chip.today, .chip.next { background: #1d6fe033; border-color: #2f95ff; color: #bcdcff; }
+  .chip.done { background: #14804a; border-color: #14804a; color: #fff; }
+  .chip.lock { color: var(--muted); }
+  .cbody { display: grid; gap: .8rem; padding: .2rem 1rem 1rem 3.8rem; }
+  .cbody p { margin: 0; }
+  .cbody h4 { margin: 0 0 .3rem; font-size: .85rem; color: #fff; }
+  .cbody ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .15rem; font-size: .92rem; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .links { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+  .empty { font-size: .85rem; color: var(--muted); padding: .35rem .7rem; border: 1px dashed var(--line); border-radius: 999px; }
+  @media (max-width: 40rem) {
+    .summary { grid-template-columns: 1fr; padding: 1rem; }
+    .facts { grid-template-columns: repeat(2, 1fr); }
+    .week > summary { grid-template-columns: 1fr auto; }
+    .wn { grid-column: 1; }
+    .wt { grid-column: 1 / -1; grid-row: 2; }
+    .wm { grid-column: 1 / -1; grid-row: 3; }
+    .week > summary::after { grid-column: 2; grid-row: 1; }
+    .week > summary progress { grid-row: 4; }
+    .cl summary { grid-template-columns: auto 1fr; padding: .75rem; }
+    .chips { grid-column: 1 / -1; justify-content: flex-start; }
+    .cbody { padding: .2rem .8rem 1rem; }
+    .cols { grid-template-columns: 1fr; }
+    .links .button { width: 100%; text-align: center; }
+  }
+</style>

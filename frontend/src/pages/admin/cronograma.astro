@@ -1,0 +1,211 @@
+---
+import BaseLayout from '../../shared/presentation/BaseLayout.astro';
+import { loadSchedule, loadStudents, saveClass, saveSettings, saveWeek, WEEKDAYS, shortDate } from '../../features/schedule/schedule-api';
+import { siteUrl } from '../../shared/config/server';
+
+const token = Astro.locals.accessToken;
+if (!token) return Astro.redirect('/ingresar', 303);
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+const text = (form: FormData, key: string) => String(form.get(key) ?? '');
+
+if (Astro.request.method === 'POST') {
+  if (Astro.request.headers.get('origin') !== siteUrl().origin) return new Response(null, { status: 403 });
+  const form = await Astro.request.formData();
+  const action = text(form, 'action');
+  const back = (status: number, anchor = '') => Astro.redirect(`/admin/cronograma?${status === 200 ? 'guardado=1' : `error=${status}`}${anchor}`, 303);
+
+  if (action === 'class' && UUID.test(text(form, 'id'))) {
+    const data: Record<string, string> = {};
+    for (const key of ['title', 'description', 'objectives', 'content', 'activity', 'outcome', 'meet_url', 'recording_url', 'material_url', 'access', 'held']) {
+      if (form.has(key)) data[key] = text(form, key);
+    }
+    return back(await saveClass(token, text(form, 'id'), data), `#clase-${text(form, 'no').replace(/\D/g, '')}`);
+  }
+  if (action === 'settings' && UUID.test(text(form, 'course'))) {
+    return back(await saveSettings(token, {
+      course: text(form, 'course'), startDate: text(form, 'startDate'), unlockTime: text(form, 'unlockTime'), timezone: text(form, 'timezone'),
+    }), '#calendario');
+  }
+  if (action === 'week' && UUID.test(text(form, 'course')) && /^\d{1,2}$/.test(text(form, 'week'))) {
+    const topics = [...form.keys()].filter((k) => k.startsWith('topic_')).map((k) => ({ topic_no: Number(k.slice(6)), title: text(form, k) }));
+    return back(await saveWeek(token, Number(text(form, 'week')), {
+      course: text(form, 'course'), title: text(form, 'title'), objective: text(form, 'objective'), topics,
+    }), `#semana-${text(form, 'week')}`);
+  }
+  return back(400);
+}
+
+const data = await loadSchedule(token);
+const students = data ? await loadStudents(token, data.course.id) : null;
+if (!data) Astro.response.status = 503;
+const saved = Astro.url.searchParams.get('guardado') === '1';
+const error = Astro.url.searchParams.get('error');
+const errorText = error === '400'
+  ? 'No se guardó: revisa los datos. La fecha de inicio debe ser un lunes; el enlace de reunión debe ser de Google Meet (https://meet.google.com/…) y los de grabación y material de Google Drive o Docs.'
+  : error ? 'No se pudo guardar. Inténtalo de nuevo.' : '';
+const zones = ['America/Lima', 'America/Bogota', 'America/Guayaquil', 'America/Mexico_City', 'America/Santiago', 'America/Argentina/Buenos_Aires', 'America/New_York', 'Europe/Madrid'];
+const phaseLabel: Record<string, string> = { executed: 'Ejecutada', today: 'Hoy', next: 'Próxima', pending: 'Pendiente' };
+const fmt = (iso: string) => new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date(iso));
+---
+<BaseLayout title="Cronograma del curso" privatePage>
+  <section class="shell page stack admin-plan">
+    <div class="stack compact">
+      <p class="kicker">Administración</p>
+      <h1 class="panel-title">Cronograma del curso</h1>
+      <p><a href="/admin">← Administración de acceso</a> · <a href="/campus/cronograma">Ver como alumno</a></p>
+    </div>
+    {saved && <p class="notice" role="status">Cambios guardados.</p>}
+    {errorText && <p class="notice" role="alert">{errorText}</p>}
+
+    {data ? (
+      <>
+        <p class="meta">{data.course.name} · 4 semanas · 8 temas · 20 clases · 40 horas. Las clases se abren solas según el calendario; aquí puedes adelantarlas, bloquearlas, cargar enlaces y editar el contenido sin perder el progreso de los alumnos.</p>
+
+        <section id="calendario" class="card">
+          <h2>Calendario de la edición</h2>
+          <form method="post" class="grid">
+            <input type="hidden" name="action" value="settings" />
+            <input type="hidden" name="course" value={data.course.id} />
+            <label>Primer lunes (inicio de la clase 1)
+              <input type="date" name="startDate" value={data.settings.start_date ?? ''} />
+              <small>Debe ser un lunes. Sin fecha, ninguna clase se abre sola.</small></label>
+            <label>Hora en que se abre cada clase
+              <input type="time" name="unlockTime" value={data.settings.unlock_time} required />
+              <small>Es la hora de publicación; no tiene que coincidir con el horario de la reunión.</small></label>
+            <label>Zona horaria
+              <select name="timezone">{[...new Set([data.settings.timezone, ...zones])].map((z) => <option value={z} selected={z === data.settings.timezone}>{z}</option>)}</select></label>
+            <button class="button primary">Guardar calendario</button>
+          </form>
+          <p class="meta">Se cuentan solo lunes a viernes, sin feriados automáticos. La clase 20 cae el viernes de la cuarta semana.</p>
+        </section>
+
+        <section class="card">
+          <h2>Semanas, temas y clases</h2>
+          {data.weeks.map((week) => (
+            <details class="week" id={`semana-${week.week_no}`} open={week.week_no === (data.next?.week_no ?? 1)}>
+              <summary><b>Semana {week.week_no}</b> · {week.title} <span class="meta">({week.total} clases)</span></summary>
+              <form method="post" class="grid weekform">
+                <input type="hidden" name="action" value="week" />
+                <input type="hidden" name="course" value={data.course.id} />
+                <input type="hidden" name="week" value={week.week_no} />
+                <label>Título de la semana<input name="title" value={week.title} maxlength="160" required /></label>
+                <label>Objetivo semanal<textarea name="objective" rows="2" maxlength="1000">{week.objective}</textarea></label>
+                {week.topics.map((t) => <label>Tema {t.topic_no}<input name={`topic_${t.topic_no}`} value={t.title} maxlength="160" required /></label>)}
+                <button class="button secondary">Guardar semana</button>
+              </form>
+
+              {week.classes.map((c) => (
+                <details class="class" id={`clase-${c.class_no}`}>
+                  <summary>
+                    <span class="num">{c.class_no}</span>
+                    <span><b>{c.title}</b><br /><small>{WEEKDAYS[c.weekday - 1]}{c.date ? ` · ${shortDate(c.date)}` : ''}</small></span>
+                    <span class="tags">
+                      <span class={`tag ${c.phase}`}>{phaseLabel[c.phase]}</span>
+                      <span class={`tag ${c.unlocked ? 'open' : 'closed'}`}>{c.unlocked ? 'Abierta' : 'Cerrada'}</span>
+                      {c.meet_url ? <span class="tag open">Con enlace</span> : <span class="tag closed">Sin enlace</span>}
+                    </span>
+                  </summary>
+                  <form method="post" class="grid classform" data-unlocked={c.unlocked ? '1' : '0'}>
+                    <input type="hidden" name="action" value="class" />
+                    <input type="hidden" name="id" value={c.id} />
+                    <input type="hidden" name="no" value={c.class_no} />
+                    <fieldset>
+                      <legend>Enlaces (los cargas tú)</legend>
+                      <label>Reunión de Google Meet<input type="url" name="meet_url" value={c.meet_url ?? ''} placeholder="https://meet.google.com/abc-defg-hij" maxlength="2048" /></label>
+                      <label>Grabación en Google Drive<input type="url" name="recording_url" value={c.recording_url ?? ''} placeholder="https://drive.google.com/…" maxlength="2048" /></label>
+                      <label>Material en Google Drive / Docs<input type="url" name="material_url" value={c.material_url ?? ''} placeholder="https://drive.google.com/…" maxlength="2048" /></label>
+                    </fieldset>
+                    <fieldset>
+                      <legend>Disponibilidad</legend>
+                      <label>Acceso de los alumnos
+                        <select name="access" data-initial={c.manual}>
+                          <option value="auto" selected={c.manual === 'auto'}>Automático (según el calendario)</option>
+                          <option value="enabled" selected={c.manual === 'enabled'}>Habilitada ahora (adelantar)</option>
+                          <option value="blocked" selected={c.manual === 'blocked'}>Bloqueada</option>
+                        </select></label>
+                      <label>Estado de la clase
+                        <select name="held" data-initial={c.held ?? 'auto'}>
+                          <option value="auto" selected={(c.held ?? 'auto') === 'auto'}>Automático (ejecutada al pasar su día)</option>
+                          <option value="held" selected={c.held === 'held'}>Marcar como ejecutada</option>
+                          <option value="pending" selected={c.held === 'pending'}>Marcar como pendiente</option>
+                        </select></label>
+                    </fieldset>
+                    <label>Título<input name="title" value={c.title} maxlength="160" required /></label>
+                    <label>Descripción<textarea name="description" rows="2" maxlength="1000">{c.description}</textarea></label>
+                    <label>Objetivos de aprendizaje (uno por línea)<textarea name="objectives" rows="4" maxlength="3000">{c.objectives}</textarea></label>
+                    <label>Contenido del día (uno por línea)<textarea name="content" rows="5" maxlength="3000">{c.content}</textarea></label>
+                    <label>Actividad práctica<textarea name="activity" rows="2" maxlength="1000">{c.activity}</textarea></label>
+                    <label>Resultado esperado<textarea name="outcome" rows="2" maxlength="1000">{c.outcome}</textarea></label>
+                    <button class="button primary">Guardar clase {c.class_no}</button>
+                  </form>
+                </details>
+              ))}
+            </details>
+          ))}
+        </section>
+
+        <section class="card">
+          <h2>Avance de los alumnos</h2>
+          {students === null && <p class="notice" role="status">No se pudo cargar el avance.</p>}
+          {students && students.length === 0 && <p class="meta">Todavía no hay alumnos matriculados en este curso.</p>}
+          {students && students.length > 0 && (
+            <div class="tablewrap">
+              <table>
+                <thead><tr><th>Alumno</th><th>Correo</th><th>Completadas</th><th>Avance</th><th>Última actividad</th></tr></thead>
+                <tbody>{students.map((s) => (
+                  <tr><td>{s.full_name}</td><td>{s.email}</td><td>{s.completed}/{s.total}</td>
+                    <td><progress value={s.percent} max="100" aria-label={`Avance de ${s.full_name}`} /> {s.percent}%</td>
+                    <td>{s.last_activity ? fmt(s.last_activity) : '—'}</td></tr>
+                ))}</tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </>
+    ) : <p class="notice" role="status">No hay un cronograma cargado para mostrar.</p>}
+  </section>
+</BaseLayout>
+<script>
+  // Cambiar la disponibilidad de una clase que los alumnos ya pueden ver pide confirmación.
+  document.querySelectorAll<HTMLFormElement>('.classform').forEach((form) => {
+    form.addEventListener('submit', (event) => {
+      if (form.dataset.unlocked !== '1') return;
+      const changed = ['access', 'held'].some((name) => {
+        const select = form.elements.namedItem(name) as HTMLSelectElement | null;
+        return select && select.value !== select.dataset.initial;
+      });
+      if (changed && !confirm('Esta clase ya está abierta para los alumnos. ¿Confirmas el cambio de disponibilidad?')) event.preventDefault();
+    });
+  });
+</script>
+<style>
+  .admin-plan { max-width: 60rem; gap: 1.4rem; }
+  .meta, small { color: var(--muted); }
+  small { display: block; font-weight: 400; font-size: .78rem; }
+  .card { width: 100%; border: 1px solid var(--line); border-radius: 14px; padding: 1.2rem; display: grid; gap: .9rem; background: var(--white); }
+  .card h2 { margin: 0; font-size: 1.1rem; }
+  .grid { display: grid; gap: .8rem; }
+  .grid > .button { justify-self: start; }
+  label { display: grid; gap: .3rem; font-weight: 600; font-size: .88rem; }
+  textarea { font: inherit; border: 1px solid #b6c6d4; border-radius: 10px; padding: .55rem .7rem; resize: vertical; }
+  fieldset { border: 1px solid var(--line); border-radius: 12px; padding: .8rem 1rem; display: grid; gap: .7rem; margin: 0; }
+  legend { font-weight: 800; padding-inline: .3rem; font-size: .85rem; }
+  .week { border: 1px solid var(--line); border-radius: 12px; padding: .2rem 1rem; }
+  .week > summary { cursor: pointer; padding: .8rem 0; }
+  .weekform { padding-bottom: 1rem; border-bottom: 1px solid var(--line); margin-bottom: .6rem; }
+  .class { border-top: 1px solid var(--line); }
+  .class > summary { display: grid; grid-template-columns: auto 1fr auto; gap: .8rem; align-items: center; padding: .7rem 0; cursor: pointer; list-style: none; }
+  .class > summary::-webkit-details-marker { display: none; }
+  .classform { padding: .4rem 0 1.2rem; }
+  .num { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid var(--line); font-weight: 800; font-size: .85rem; }
+  .tags { display: flex; flex-wrap: wrap; gap: .3rem; justify-content: flex-end; }
+  .tag { font-size: .7rem; font-weight: 700; padding: .15rem .5rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+  .tag.executed, .tag.open { background: #e6f4ea; border-color: #9bd1ad; color: #14653a; }
+  .tag.today, .tag.next { background: #e3efff; border-color: #9cc3f5; color: #164a9c; }
+  .tag.closed { color: var(--muted); }
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+  th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  @media (max-width: 40rem) { .card { padding: .9rem; } .class > summary { grid-template-columns: auto 1fr; } .tags { grid-column: 1 / -1; justify-content: flex-start; } }
+</style>
