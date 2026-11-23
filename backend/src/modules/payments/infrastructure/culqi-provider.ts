@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import type { ChargeInput, ChargeResult, PaymentProvider } from '../application/payment-provider';
 
 type Fetch = typeof fetch;
@@ -7,7 +8,12 @@ interface CulqiCharge {
   capture?: boolean | null;
   amount?: number;
   currency_code?: string;
-  outcome?: { type?: string; user_message?: string };
+  object?: string;
+  type?: string;
+  code?: string;
+  decline_code?: string;
+  param?: string;
+  outcome?: { type?: string; code?: string; user_message?: string; merchant_message?: string };
   user_message?: string;
   merchant_message?: string;
 }
@@ -15,6 +21,7 @@ interface CulqiCharge {
 /** Adaptador de Culqi (https://docs.culqi.com): Checkout en el navegador -> token -> cargo desde el servidor. */
 export class CulqiProvider implements PaymentProvider {
   readonly name = 'culqi';
+  private readonly log = new Logger('Culqi');
 
   constructor(
     private readonly publicKey: string,
@@ -69,6 +76,12 @@ export class CulqiProvider implements PaymentProvider {
         currency: body.currency_code ?? input.currency,
       };
     }
+    // Motivo técnico para el comercio (no contiene datos de tarjeta ni llaves).
+    this.log.warn(JSON.stringify({
+      event: 'charge-declined', http: response.status, currency: input.currency, amount: input.amount,
+      type: body.type ?? body.outcome?.type, code: body.code ?? body.outcome?.code, decline: body.decline_code,
+      param: body.param, merchant: body.merchant_message ?? body.outcome?.merchant_message,
+    }));
     return {
       status: 'declined',
       reason: body.user_message ?? body.outcome?.user_message ?? 'El pago fue rechazado.',
