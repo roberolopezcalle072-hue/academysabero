@@ -16,9 +16,15 @@ export const POST: APIRoute = async (context) => {
   const paymentId = String(body.paymentId ?? '');
   if (!UUID.test(paymentId) || typeof body.token !== 'string') return json({ reason: 'bad-request' }, 400);
 
+  // Datos opcionales del 3D Secure: se reenvían tal cual y el servidor los valida.
+  const extra: Record<string, unknown> = {};
+  if (typeof body.deviceId === 'string') extra.deviceId = body.deviceId;
+  if (body.authentication3DS && typeof body.authentication3DS === 'object' && !Array.isArray(body.authentication3DS) &&
+      JSON.stringify(body.authentication3DS).length < 2000) extra.authentication3DS = body.authentication3DS;
+
   try {
     // El cobro con la pasarela puede tardar unos segundos.
-    const response = await apiRequest(`/payments/${paymentId}/charge`, token, { token: body.token }, 30000);
+    const response = await apiRequest(`/payments/${paymentId}/charge`, token, { token: body.token, ...extra }, 30000);
     return json(await response.json().catch(() => ({})), response.status);
   } catch {
     return json({ reason: 'unavailable' }, 503);

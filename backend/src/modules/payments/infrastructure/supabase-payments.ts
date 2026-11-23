@@ -78,6 +78,14 @@ export class SupabasePayments {
     if (error) throw error;
   }
 
+  /** Devuelve el pago a "pending" para reintentar tras la verificación 3D Secure. */
+  async release(paymentId: string) {
+    const { error } = await this.client().rpc('academy_release_payment', {
+      p_secret: this.internalSecret, p_payment: paymentId,
+    });
+    if (error) throw error;
+  }
+
   private client(accessToken?: string) {
     return createAcademyClient(this.url, this.key, accessToken);
   }

@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { bearerToken } from '../../access/presentation/bearer-token';
-import type { PaymentProvider } from '../application/payment-provider';
+import type { Authentication3DS, PaymentProvider } from '../application/payment-provider';
 import { MailService } from '../../mail/mail.service';
 import { SupabasePayments } from '../infrastructure/supabase-payments';
 
@@ -80,8 +80,11 @@ export class PaymentsController {
   @Header('Cache-Control', 'private, no-store')
   async charge(
     @Headers('authorization') authorization: string | undefined,
-    @Param('id', ParseUUIDPipe) id: string, @Body('token') cardToken: unknown,
+    @Param('id', ParseUUIDPipe) id: string, @Body() body: Record<string, unknown>,
   ) {
+    const cardToken = body?.token;
+    const deviceId = body?.deviceId === undefined ? undefined : validDevice(body.deviceId);
+    const authentication3DS = body?.authentication3DS === undefined ? undefined : validAuthentication(body.authentication3DS);
     const token = bearerToken(authorization);
     const provider = this.requireProvider();
     if (typeof cardToken !== 'string' || !/^[A-Za-z0-9_-]{6,120}$/.test(cardToken)) throw new BadRequestException();
@@ -96,12 +99,23 @@ export class PaymentsController {
       result = await provider.charge({
         paymentId: id, amount: row.amount, currency: row.currency, description: row.course_name, email: row.email,
         customer: { firstName, lastName: rest.join(' ') || firstName, phone: row.phone, country: row.country },
-        token: cardToken,
+        token: cardToken, deviceId, authentication3DS,
       });
     } catch (error) {
       // No se sabe si la pasarela cobró: el pago queda "processing" para revisarlo a mano, no se marca como fallido.
       this.log.error(`Pasarela sin respuesta para el pago ${id}: ${(error as Error).message}`);
       throw new ServiceUnavailableException({ reason: 'provider-unavailable' });
+    }
+
+    if (result.status === 'authentication-required') {
+      // La tarjeta pide 3D Secure: el pago vuelve a "pending" y el navegador reintenta con el resultado.
+      try {
+        await this.payments.release(id);
+      } catch (error) {
+        this.log.error(`No se pudo liberar el pago ${id} para el 3D Secure: ${(error as Error).message}`);
+        throw new ServiceUnavailableException({ reason: 'provider-unavailable' });
+      }
+      return { status: 'authentication-required', provider: provider.name };
     }
 
     if (result.status === 'declined') {
@@ -159,6 +173,31 @@ function text(value: unknown, min: number, max: number): string {
   const clean = value.trim().replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
   if (clean.length < min || clean.length > max) throw new BadRequestException();
   return clean;
+}
+
+function validDevice(value: unknown): string {
+  if (typeof value !== 'string' || !UUID.test(value)) throw new BadRequestException();
+  return value;
+}
+
+function validAuthentication(value: unknown): Authentication3DS {
+  const v = (typeof value === 'object' && value !== null ? value : {}) as Record<string, unknown>;
+  const field = (key: string, pattern: RegExp, optional = false): string | undefined => {
+    const item = v[key];
+    if (item === undefined || item === null || item === '') {
+      if (optional) return undefined;
+      throw new BadRequestException();
+    }
+    if (typeof item !== 'string' || !pattern.test(item)) throw new BadRequestException();
+    return item;
+  };
+  return {
+    eci: field('eci', /^\d{1,2}$/)!,
+    xid: field('xid', /^[A-Za-z0-9+/=_-]{1,200}$/)!,
+    cavv: field('cavv', /^[A-Za-z0-9+/=_-]{1,200}$/)!,
+    protocolVersion: field('protocolVersion', /^\d+(\.\d+){0,2}$/)!,
+    directoryServerTransactionId: field('directoryServerTransactionId', /^[A-Za-z0-9-]{1,100}$/, true),
+  };
 }
 
 function phoneNumber(value: unknown): string {

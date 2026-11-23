@@ -9,6 +9,11 @@ export class MockProvider implements PaymentProvider {
   }
 
   async charge(input: ChargeInput): Promise<ChargeResult> {
+    // Simula una tarjeta que exige 3D Secure: primero pide autenticar y, con el resultado, cobra.
+    if (input.token === 'tok_mock_3ds') {
+      if (!input.authentication3DS) return { status: 'authentication-required' };
+      return { status: 'paid', externalId: `mock_${input.paymentId}`, amount: input.amount, currency: input.currency };
+    }
     if (input.token === 'tok_mock_ok') {
       return { status: 'paid', externalId: `mock_${input.paymentId}`, amount: input.amount, currency: input.currency };
     }

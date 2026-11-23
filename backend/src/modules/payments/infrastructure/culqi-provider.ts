@@ -9,6 +9,7 @@ interface CulqiCharge {
   amount?: number;
   currency_code?: string;
   object?: string;
+  action_code?: string;
   type?: string;
   code?: string;
   decline_code?: string;
@@ -58,7 +59,9 @@ export class CulqiProvider implements PaymentProvider {
           first_name: input.customer.firstName,
           last_name: input.customer.lastName,
           phone_number: input.customer.phone.replace(/[^\d]/g, '').slice(0, 15),
+          ...(input.deviceId ? { device_finger_print_id: input.deviceId } : {}),
         },
+        ...(input.authentication3DS ? { authentication_3DS: input.authentication3DS } : {}),
       }),
       signal: AbortSignal.timeout(20_000),
     });
@@ -75,6 +78,11 @@ export class CulqiProvider implements PaymentProvider {
         amount: (body.amount ?? 0) / 100,
         currency: body.currency_code ?? input.currency,
       };
+    }
+    // La tarjeta exige 3D Secure (Culqi responde 200 con action_code REVIEW): hay que autenticar y reintentar.
+    if (response.ok && body.action_code === 'REVIEW' && !input.authentication3DS) {
+      this.log.log(JSON.stringify({ event: 'authentication-required', currency: input.currency, amount: input.amount }));
+      return { status: 'authentication-required' };
     }
     // Motivo técnico para el comercio (no contiene datos de tarjeta ni llaves).
     this.log.warn(JSON.stringify({
